@@ -2,3 +2,7 @@
 members = [
   "hub",
 ]
+
+[workspace.dependencies]
+ownable = { path = "modules/ownable" }
+metadata = { path = "modules/metadata" }
