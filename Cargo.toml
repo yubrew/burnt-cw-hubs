@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "hub",
+  "seat"
 ]
 
 [workspace.dependencies]
