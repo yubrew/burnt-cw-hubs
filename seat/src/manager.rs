@@ -3,13 +3,14 @@ pub mod contract_manager {
     use cw_storage_plus::Item;
     use metadata::Metadata;
     use ownable::Ownable;
+    use sellable::Sellable;
     use std::{cell::RefCell, rc::Rc};
     use thiserror::Error;
 
     use burnt_glue::manager::Manager;
     use token::Tokens;
 
-    use crate::state::SeatMetadata;
+    use crate::state::{SeatMetadata, TokenMetadata};
 
     #[derive(Error, Debug)]
     pub enum ManagerError {
@@ -37,10 +38,16 @@ pub mod contract_manager {
         .unwrap();
         
         let seat_token =
-            Rc::new(RefCell::new(Tokens::<SeatMetadata, Empty, Empty, Empty, >::default()));
+            Rc::new(RefCell::new(Tokens::<TokenMetadata, Empty, Empty, Empty, >::default()));
         contract_manager
-            .register("seat".to_string(), seat_token)
+            .register("seat_token".to_string(), seat_token.clone())
             .unwrap();
-        contract_manager
+            
+            let sellable_token = Rc::new(RefCell::new(Sellable::<TokenMetadata, Empty, Empty, Empty, >::new(seat_token, owner)));
+            contract_manager
+            .register("sellable_token".to_string(), sellable_token)
+            .unwrap();
+
+            contract_manager
     }
 }

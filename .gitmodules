@@ -1,3 +1,4 @@
 [submodule "modules"]
 	path = modules
 	url = git@github.com:BurntFinance/burnt-cw-std.git
+	branch = sellable

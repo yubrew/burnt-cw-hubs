@@ -53,7 +53,8 @@ burnt-glue = "0.2.2"
 semver = "1.0.14"
 ownable = { workspace = true }
 metadata = { workspace = true }
-token = { path = "../../../burnt-cw-std/token" }
+token = { workspace = true }
+sellable = { workspace = true }
 cw721 = "0.16.0"
 cw721-base = "0.16.0"
 

@@ -7,3 +7,5 @@ members = [
 [workspace.dependencies]
 ownable = { path = "modules/ownable" }
 metadata = { path = "modules/metadata" }
+token = { path = "modules/token" }
+sellable = { path = "modules/sellable" }
