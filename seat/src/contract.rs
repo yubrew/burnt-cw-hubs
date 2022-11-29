@@ -74,20 +74,19 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
 
 #[cfg(test)]
 mod tests {
-
     use crate::{msg::InstantiateMsg, state::{SeatMetadata, TokenMetadata}};
 
     use super::*;
     use cosmwasm_std::{
         from_binary,
-        testing::{mock_dependencies, mock_env, mock_info}, Empty, Uint64,
+        testing::{mock_dependencies, mock_env, mock_info}, Empty, Uint64, Coin, Uint128,
     };
     use schemars::Map;
     use token::QueryResp as TokenQueryResp;
     use metadata::QueryResp as MetadataQueryResp;
     use sellable::{msg::{ QueryMsg as SellableQueryMsg, QueryResp as SellableQueryResp, ExecuteMsg as SellableExecuteMsg }, query::ListedTokensResponse};
     use cw721_base::{QueryMsg, ExecuteMsg, MintMsg};
-    use cw721::{NumTokensResponse, Cw721QueryMsg};
+    use cw721::{NumTokensResponse, Cw721QueryMsg, TokensResponse};
     use serde_json::json;
 
     const CREATOR: &str = "cosmos188rjfzzrdxlus60zgnrvs4rg0l73hct3azv93z";
@@ -233,6 +232,49 @@ mod tests {
             SellableQueryResp::Result(res) => {
                 let listed_tokens: ListedTokensResponse<TokenMetadata> = from_binary(&res).unwrap();
                 assert_eq!(listed_tokens.tokens.len(), 1);
+                let (_, metadata) = &listed_tokens.tokens[0];
+                assert_eq!(metadata.extension.list_price.unwrap(), Uint64::new(100));
+            }
+        }
+        // buy a token
+        let msg = SellableExecuteMsg::Buy { };
+        let buy_msg = json!({
+            "sellable_token": msg
+        }).to_string();
+        let buyer_info = mock_info("buyer", &[Coin::new(150, "burnt")]);
+        execute(&mut deps.as_mut(), env.clone(), buyer_info, buy_msg).unwrap();
+        // Get all listed tokens
+        let query_msg = SellableQueryMsg::ListedTokens { start_after: None, limit: None };
+        let res = query(
+            deps.as_ref(),
+            env.clone(),
+            json!({"sellable_token": query_msg}).to_string(),
+        )
+        .unwrap();
+        let result: SellableQueryResp = from_binary(&res).unwrap();
+        match result {
+            SellableQueryResp::Result(res) => {
+                let listed_tokens: ListedTokensResponse<TokenMetadata> = from_binary(&res).unwrap();
+                assert_eq!(listed_tokens.tokens.len(), 0);
+            }
+        }
+        // Get all buyer owned tokens
+        let query_msg = QueryMsg::<Cw721QueryMsg>::Tokens {
+            owner: "buyer".to_string(),
+            start_after: None,
+            limit: None,
+        };
+        let res = query(
+            deps.as_ref(),
+            env.clone(),
+            json!({"seat_token": query_msg}).to_string(),
+        );
+        let result: TokenQueryResp = from_binary(&res.unwrap()).unwrap();
+        match result {
+            TokenQueryResp::Result(res) => {
+                let tokens: TokensResponse = from_binary(&res).unwrap();
+                assert_eq!(tokens.tokens.len(), 1);
+                assert_eq!(tokens.tokens[0], "1");
             }
         }
     }

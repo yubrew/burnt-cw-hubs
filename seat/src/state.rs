@@ -56,8 +56,8 @@ impl SellableTrait for TokenMetadata {
         self.list_price
     }
 
-    fn set_list_price(&mut self, price: cosmwasm_std::Uint64) -> bool {
-        self.list_price = Some(price);
+    fn set_list_price(&mut self, price: Option<cosmwasm_std::Uint64>) -> bool {
+        self.list_price = price;
         true
     }
 }
