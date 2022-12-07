@@ -234,7 +234,10 @@ mod tests {
         }
         // List the token
         let msg = SellableExecuteMsg::List {
-            listings: Map::from([("1".to_string(), Uint64::new(100)), ("2".to_string(), Uint64::new(200))]),
+            listings: Map::from([
+                ("1".to_string(), Uint64::new(100)),
+                ("2".to_string(), Uint64::new(200)),
+            ]),
         };
         let list_msg = json!({ "sellable_token": msg }).to_string();
         execute(&mut deps.as_mut(), env.clone(), info.clone(), list_msg).unwrap();
@@ -311,8 +314,8 @@ mod tests {
             Err(val) => {
                 print!("{:?}", val);
                 assert!(true)
-            },
-            _ => assert!(false)
+            }
+            _ => assert!(false),
         }
         // Get all buyer owned tokens
         let query_msg = QueryMsg::<Cw721QueryMsg>::Tokens {

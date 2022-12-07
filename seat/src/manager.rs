@@ -65,7 +65,7 @@ pub mod contract_manager {
         contract_manager
             .register("sellable_token".to_string(), sellable_token)
             .unwrap();
-        
+
         contract_manager
     }
 }
