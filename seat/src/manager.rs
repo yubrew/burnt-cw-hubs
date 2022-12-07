@@ -50,6 +50,11 @@ pub mod contract_manager {
             .register("seat_token".to_string(), seat_token.clone())
             .unwrap();
 
+        let redeemable = Rc::new(RefCell::new(Redeemable::default()));
+        contract_manager
+            .register("redeemable".to_string(), redeemable.clone())
+            .unwrap();
+
         let sellable_token = Rc::new(RefCell::new(
             Sellable::<TokenMetadata, Empty, Empty, Empty>::new(
                 seat_token,
@@ -60,11 +65,7 @@ pub mod contract_manager {
         contract_manager
             .register("sellable_token".to_string(), sellable_token)
             .unwrap();
-
-        let redeemable = Rc::new(RefCell::new(Redeemable::default()));
-        contract_manager
-            .register("redeemable".to_string(), redeemable)
-            .unwrap();
+        
         contract_manager
     }
 }

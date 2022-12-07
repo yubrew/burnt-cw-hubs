@@ -179,23 +179,25 @@ mod tests {
         assert_eq!(0, res.messages.len());
 
         // mint a token
-        let msg = ExecuteMsg::<TokenMetadata, Empty>::Mint(MintMsg {
-            token_id: "1".to_string(),
-            owner: CREATOR.to_string(),
-            token_uri: Some("https://example.com".to_string()),
-            extension: TokenMetadata {
-                name: Some("".to_string()),
-                description: Some("".to_string()),
-                royalty_percentage: Some(0),
-                royalty_payment_address: Some("".to_string()),
-                list_price: Some(Uint64::new(0)),
-                locked: false,
-                redeemed: false,
-            },
-        });
-        let mint_msg = json!({ "seat_token": msg }).to_string();
+        for (token_id, price) in vec![("1", 100), ("2", 200)] {
+            let msg = ExecuteMsg::<TokenMetadata, Empty>::Mint(MintMsg {
+                token_id: token_id.to_string(),
+                owner: CREATOR.to_string(),
+                token_uri: Some("https://example.com".to_string()),
+                extension: TokenMetadata {
+                    name: Some("".to_string()),
+                    description: Some("".to_string()),
+                    royalty_percentage: Some(0),
+                    royalty_payment_address: Some("".to_string()),
+                    list_price: Some(Uint64::new(price)),
+                    locked: false,
+                    redeemed: false,
+                },
+            });
+            let mint_msg = json!({ "seat_token": msg }).to_string();
 
-        execute(&mut deps.as_mut(), env.clone(), info.clone(), mint_msg).unwrap();
+            execute(&mut deps.as_mut(), env.clone(), info.clone(), mint_msg).unwrap();
+        }
 
         let query_msg = QueryMsg::<Cw721QueryMsg>::NumTokens {};
         let res = query(
@@ -208,7 +210,7 @@ mod tests {
         match result {
             TokenQueryResp::Result(res) => {
                 let token_count: NumTokensResponse = from_binary(&res).unwrap();
-                assert_eq!(token_count.count, 1);
+                assert_eq!(token_count.count, 2);
             }
         }
 
@@ -232,7 +234,7 @@ mod tests {
         }
         // List the token
         let msg = SellableExecuteMsg::List {
-            listings: Map::from([("1".to_string(), Uint64::new(100))]),
+            listings: Map::from([("1".to_string(), Uint64::new(100)), ("2".to_string(), Uint64::new(200))]),
         };
         let list_msg = json!({ "sellable_token": msg }).to_string();
         execute(&mut deps.as_mut(), env.clone(), info.clone(), list_msg).unwrap();
@@ -246,15 +248,15 @@ mod tests {
         match result {
             SellableQueryResp::Result(res) => {
                 let listed_tokens: ListedTokensResponse<TokenMetadata> = from_binary(&res).unwrap();
-                assert_eq!(listed_tokens.tokens.len(), 1);
+                assert_eq!(listed_tokens.tokens.len(), 2);
                 let (_, price, _) = &listed_tokens.tokens[0];
-                assert_eq!(price, Uint64::new(100));
+                assert_eq!(price, Uint64::new(200)); // tokens sent in a descending order
             }
         }
         // buy a token
         let msg = SellableExecuteMsg::Buy {};
         let buy_msg = json!({ "sellable_token": msg }).to_string();
-        let buyer_info = mock_info("buyer", &[Coin::new(150, "burnt")]);
+        let buyer_info = mock_info("buyer", &[Coin::new(200, "burnt")]);
         execute(&mut deps.as_mut(), env.clone(), buyer_info, buy_msg).unwrap();
         // Get all listed tokens
         let query_msg = SellableQueryMsg::ListedTokens {
@@ -271,11 +273,13 @@ mod tests {
         match result {
             SellableQueryResp::Result(res) => {
                 let listed_tokens: ListedTokensResponse<TokenMetadata> = from_binary(&res).unwrap();
-                assert_eq!(listed_tokens.tokens.len(), 0);
+                assert_eq!(listed_tokens.tokens.len(), 1);
+                let (_, price, _) = &listed_tokens.tokens[0];
+                assert_eq!(price, Uint64::new(200)); // tokens sent in a descending order
             }
         }
         // Lock the token
-        let msg = RedeemableExecuteMsg::LockItem("1".to_string());
+        let msg = RedeemableExecuteMsg::LockItem("2".to_string());
         let lock_msg = json!({ "redeemable": msg }).to_string();
 
         execute(
@@ -286,7 +290,7 @@ mod tests {
         )
         .unwrap();
         // Confirm the token is locked
-        let query_msg = RedeemableQueryMsg::IsRedeemed("1".to_string());
+        let query_msg = RedeemableQueryMsg::IsRedeemed("2".to_string());
         let res = query(
             deps.as_ref(),
             env.clone(),
@@ -297,6 +301,18 @@ mod tests {
             RedeemableQueryResp::Result(res) => {
                 assert_eq!(res, true);
             }
+        }
+        // buy a token
+        let msg = SellableExecuteMsg::Buy {};
+        let buy_msg = json!({ "sellable_token": msg }).to_string();
+        let buyer_info = mock_info("buyer", &[Coin::new(150, "burnt")]);
+        let buy_response = execute(&mut deps.as_mut(), env.clone(), buyer_info, buy_msg);
+        match buy_response {
+            Err(val) => {
+                print!("{:?}", val);
+                assert!(true)
+            },
+            _ => assert!(false)
         }
         // Get all buyer owned tokens
         let query_msg = QueryMsg::<Cw721QueryMsg>::Tokens {
