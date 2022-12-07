@@ -23,8 +23,7 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     // instantiate all modules
     let mut manager = get_manager();
-    manager
-        .instantiate(deps, env, info, msg.as_str())
+    manager.instantiate(deps, env, info, msg.as_str())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -89,7 +88,7 @@ mod tests {
     fn test_ownable_module() {
         let mut deps = mock_dependencies();
         //no owner specified in the instantiation message
-        let msg =  json!({
+        let msg = json!({
             "ownable": {"owner": CREATOR}
         })
         .to_string();
@@ -117,25 +116,23 @@ mod tests {
     fn test_metadata_module() {
         let mut deps = mock_dependencies();
         let metadata_msg = HubMetadata {
-            name: "Kenny's contract".to_string(), 
+            name: "Kenny's contract".to_string(),
             hub_url: "find me here".to_string(),
             description: "Awesome Hub".to_string(),
             tags: vec!["awesome".to_string(), "wild".to_string()],
-            social_links: 
-            vec![
-                SocialLinks {
-                    name: "discord".to_string(),
-                    url: "discord link here".to_string()
-                }
-            ],
+            social_links: vec![SocialLinks {
+                name: "discord".to_string(),
+                url: "discord link here".to_string(),
+            }],
             creator: CREATOR.to_string(),
-            image_url: "image link here".to_string()
+            image_url: "image link here".to_string(),
         };
         let msg = json!({
             "metadata": {
                 "metadata": metadata_msg
             }
-        }).to_string();
+        })
+        .to_string();
         let env = mock_env();
         let info = mock_info(CREATOR, &[]);
 
@@ -151,10 +148,7 @@ mod tests {
         let metadata: MetadataQueryResp<HubMetadata> = from_binary(&res).unwrap();
         match metadata {
             MetadataQueryResp::Metadata(meta) => {
-                assert_eq!(
-                    meta,
-                    metadata_msg
-                );
+                assert_eq!(meta, metadata_msg);
             }
         }
     }

@@ -1,7 +1,6 @@
 use cosmwasm_std::{Addr, Uint64};
 use cw_storage_plus::Item;
 use serde::{Deserialize, Serialize};
-use sellable::msg::SellableTrait;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Config {
@@ -24,7 +23,7 @@ pub struct ContractVersion {
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct SeatMetadata {
-   pub name: String,
+    pub name: String,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -41,25 +40,6 @@ pub struct TokenMetadata {
     pub list_price: Option<Uint64>,
     pub locked: bool,
     pub redeemed: bool,
-}
-
-impl SellableTrait for TokenMetadata {
-    fn get_redeemed(&self) -> bool {
-        self.redeemed
-    }
-
-    fn get_locked(&self) -> bool {
-        self.locked
-    }
-
-    fn get_list_price(&self) -> Option<Uint64> {
-        self.list_price
-    }
-
-    fn set_list_price(&mut self, price: Option<cosmwasm_std::Uint64>) -> bool {
-        self.list_price = price;
-        true
-    }
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");

@@ -23,8 +23,7 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     // instantiate all modules
     let mut manager = get_manager();
-    manager
-        .instantiate(deps, env, info, msg.as_str())
+    manager.instantiate(deps, env, info, msg.as_str())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -74,20 +73,34 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
 
 #[cfg(test)]
 mod tests {
-    use crate::{msg::InstantiateMsg, state::{SeatMetadata, TokenMetadata}};
+    use crate::{
+        msg::InstantiateMsg,
+        state::{SeatMetadata, TokenMetadata},
+    };
 
     use super::*;
     use cosmwasm_std::{
         from_binary,
-        testing::{mock_dependencies, mock_env, mock_info}, Empty, Uint64, Coin, Uint128,
+        testing::{mock_dependencies, mock_env, mock_info},
+        Coin, Empty, Uint64,
     };
-    use schemars::Map;
-    use token::QueryResp as TokenQueryResp;
+    use cw721::{Cw721QueryMsg, NumTokensResponse, TokensResponse};
+    use cw721_base::{ExecuteMsg, MintMsg, QueryMsg};
     use metadata::QueryResp as MetadataQueryResp;
-    use sellable::{msg::{ QueryMsg as SellableQueryMsg, QueryResp as SellableQueryResp, ExecuteMsg as SellableExecuteMsg }, query::ListedTokensResponse};
-    use cw721_base::{QueryMsg, ExecuteMsg, MintMsg};
-    use cw721::{NumTokensResponse, Cw721QueryMsg, TokensResponse};
+    use redeemable::{
+        ExecuteMsg as RedeemableExecuteMsg, QueryMsg as RedeemableQueryMsg,
+        QueryResp as RedeemableQueryResp,
+    };
+    use schemars::{Map, Set};
+    use sellable::{
+        msg::{
+            ExecuteMsg as SellableExecuteMsg, QueryMsg as SellableQueryMsg,
+            QueryResp as SellableQueryResp,
+        },
+        query::ListedTokensResponse,
+    };
     use serde_json::json;
+    use token::QueryResp as TokenQueryResp;
 
     const CREATOR: &str = "cosmos188rjfzzrdxlus60zgnrvs4rg0l73hct3azv93z";
 
@@ -97,17 +110,18 @@ mod tests {
         let seat_token_meta = InstantiateMsg {
             name: "Kenny's Token Contract".to_string(),
             symbol: "KNY".to_string(),
-            minter: CREATOR.to_string()
+            minter: CREATOR.to_string(),
         };
         let metadata_msg = SeatMetadata {
-            name: "Kenny's contract".to_string(), 
+            name: "Kenny's contract".to_string(),
         };
         let msg = json!({
             "seat_token": seat_token_meta,
             "metadata": {
                 "metadata": metadata_msg
             }
-        }).to_string();
+        })
+        .to_string();
         let env = mock_env();
         let info = mock_info(CREATOR, &[]);
 
@@ -124,10 +138,7 @@ mod tests {
         let metadata: MetadataQueryResp<SeatMetadata> = from_binary(&res).unwrap();
         match metadata {
             MetadataQueryResp::Metadata(meta) => {
-                assert_eq!(
-                    meta,
-                    metadata_msg
-                );
+                assert_eq!(meta, metadata_msg);
             }
         }
 
@@ -135,7 +146,7 @@ mod tests {
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({"seat_token": query_msg}).to_string(),
+            json!({ "seat_token": query_msg }).to_string(),
         )
         .unwrap();
         let result: TokenQueryResp = from_binary(&res).unwrap();
@@ -153,12 +164,14 @@ mod tests {
         let seat_meta = InstantiateMsg {
             name: "Kenny's contract".to_string(),
             symbol: "KNY".to_string(),
-            minter: CREATOR.to_string()
+            minter: CREATOR.to_string(),
         };
         let msg = json!({
             "seat_token": seat_meta,
             "ownable": {"owner": CREATOR},
-        }).to_string();
+            "redeemable": {"locked_tokens": Set::<String>::new()},
+        })
+        .to_string();
         let env = mock_env();
         let info = mock_info(CREATOR, &[]);
 
@@ -166,30 +179,29 @@ mod tests {
         assert_eq!(0, res.messages.len());
 
         // mint a token
-        let msg = ExecuteMsg::<TokenMetadata, Empty>::Mint(
-            MintMsg {
-                token_id: "1".to_string(),
-                owner: CREATOR.to_string(),
-                token_uri: Some("https://example.com".to_string()),
-                extension: TokenMetadata { name: Some("".to_string()), description: Some("".to_string()), royalty_percentage: Some(0), royalty_payment_address: Some("".to_string()), list_price: Some(Uint64::new(0)), locked: false, redeemed: false }
+        let msg = ExecuteMsg::<TokenMetadata, Empty>::Mint(MintMsg {
+            token_id: "1".to_string(),
+            owner: CREATOR.to_string(),
+            token_uri: Some("https://example.com".to_string()),
+            extension: TokenMetadata {
+                name: Some("".to_string()),
+                description: Some("".to_string()),
+                royalty_percentage: Some(0),
+                royalty_payment_address: Some("".to_string()),
+                list_price: Some(Uint64::new(0)),
+                locked: false,
+                redeemed: false,
+            },
+        });
+        let mint_msg = json!({ "seat_token": msg }).to_string();
 
-            });
-        let mint_msg = json!({
-            "seat_token": msg
-        }).to_string();
+        execute(&mut deps.as_mut(), env.clone(), info.clone(), mint_msg).unwrap();
 
-        execute(
-            &mut deps.as_mut(),
-            env.clone(),
-            info.clone(),
-            mint_msg,
-        ).unwrap();
-        
         let query_msg = QueryMsg::<Cw721QueryMsg>::NumTokens {};
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({"seat_token": query_msg}).to_string(),
+            json!({ "seat_token": query_msg }).to_string(),
         )
         .unwrap();
         let result: TokenQueryResp = from_binary(&res).unwrap();
@@ -201,11 +213,14 @@ mod tests {
         }
 
         // Get all listed tokens
-        let query_msg = SellableQueryMsg::ListedTokens { start_after: None, limit: None };
+        let query_msg = SellableQueryMsg::ListedTokens {
+            start_after: None,
+            limit: None,
+        };
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({"sellable_token": query_msg}).to_string(),
+            json!({ "sellable_token": query_msg }).to_string(),
         )
         .unwrap();
         let result: SellableQueryResp = from_binary(&res).unwrap();
@@ -216,15 +231,15 @@ mod tests {
             }
         }
         // List the token
-        let msg = SellableExecuteMsg::List { listings: Map::from([("1".to_string(), Uint64::new(100))]) };
-        let list_msg = json!({
-            "sellable_token": msg
-        }).to_string();
-        execute(&mut deps.as_mut(), env.clone(), info, list_msg).unwrap();
+        let msg = SellableExecuteMsg::List {
+            listings: Map::from([("1".to_string(), Uint64::new(100))]),
+        };
+        let list_msg = json!({ "sellable_token": msg }).to_string();
+        execute(&mut deps.as_mut(), env.clone(), info.clone(), list_msg).unwrap();
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({"sellable_token": query_msg}).to_string(),
+            json!({ "sellable_token": query_msg }).to_string(),
         )
         .unwrap();
         let result: SellableQueryResp = from_binary(&res).unwrap();
@@ -232,23 +247,24 @@ mod tests {
             SellableQueryResp::Result(res) => {
                 let listed_tokens: ListedTokensResponse<TokenMetadata> = from_binary(&res).unwrap();
                 assert_eq!(listed_tokens.tokens.len(), 1);
-                let (_, metadata) = &listed_tokens.tokens[0];
-                assert_eq!(metadata.extension.list_price.unwrap(), Uint64::new(100));
+                let (_, price, _) = &listed_tokens.tokens[0];
+                assert_eq!(price, Uint64::new(100));
             }
         }
         // buy a token
-        let msg = SellableExecuteMsg::Buy { };
-        let buy_msg = json!({
-            "sellable_token": msg
-        }).to_string();
+        let msg = SellableExecuteMsg::Buy {};
+        let buy_msg = json!({ "sellable_token": msg }).to_string();
         let buyer_info = mock_info("buyer", &[Coin::new(150, "burnt")]);
         execute(&mut deps.as_mut(), env.clone(), buyer_info, buy_msg).unwrap();
         // Get all listed tokens
-        let query_msg = SellableQueryMsg::ListedTokens { start_after: None, limit: None };
+        let query_msg = SellableQueryMsg::ListedTokens {
+            start_after: None,
+            limit: None,
+        };
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({"sellable_token": query_msg}).to_string(),
+            json!({ "sellable_token": query_msg }).to_string(),
         )
         .unwrap();
         let result: SellableQueryResp = from_binary(&res).unwrap();
@@ -256,6 +272,30 @@ mod tests {
             SellableQueryResp::Result(res) => {
                 let listed_tokens: ListedTokensResponse<TokenMetadata> = from_binary(&res).unwrap();
                 assert_eq!(listed_tokens.tokens.len(), 0);
+            }
+        }
+        // Lock the token
+        let msg = RedeemableExecuteMsg::LockItem("1".to_string());
+        let lock_msg = json!({ "redeemable": msg }).to_string();
+
+        execute(
+            &mut deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            lock_msg.clone(),
+        )
+        .unwrap();
+        // Confirm the token is locked
+        let query_msg = RedeemableQueryMsg::IsRedeemed("1".to_string());
+        let res = query(
+            deps.as_ref(),
+            env.clone(),
+            json!({ "redeemable": query_msg }).to_string(),
+        );
+        let result: RedeemableQueryResp = from_binary(&res.unwrap()).unwrap();
+        match result {
+            RedeemableQueryResp::Result(res) => {
+                assert_eq!(res, true);
             }
         }
         // Get all buyer owned tokens
@@ -267,7 +307,7 @@ mod tests {
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({"seat_token": query_msg}).to_string(),
+            json!({ "seat_token": query_msg }).to_string(),
         );
         let result: TokenQueryResp = from_binary(&res.unwrap()).unwrap();
         match result {

@@ -24,18 +24,18 @@ pub struct ContractVersion {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct SocialLinks {
     pub name: String,
-    pub url: String
+    pub url: String,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct HubMetadata {
-   pub name: String,
-   pub hub_url: String,
-   pub description: String,
-   pub tags: Vec<String>,
-   pub social_links: Vec<SocialLinks>,
-   pub creator: String,
-   pub image_url: String,
+    pub name: String,
+    pub hub_url: String,
+    pub description: String,
+    pub tags: Vec<String>,
+    pub social_links: Vec<SocialLinks>,
+    pub creator: String,
+    pub image_url: String,
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");
