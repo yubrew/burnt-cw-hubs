@@ -92,12 +92,9 @@ mod tests {
         QueryResp as RedeemableQueryResp,
     };
     use schemars::{Map, Set};
-    use sellable::{
-        msg::{
-            ExecuteMsg as SellableExecuteMsg, QueryMsg as SellableQueryMsg,
-            QueryResp as SellableQueryResp,
-        },
-        query::ListedTokensResponse,
+    use sellable::msg::{
+        ExecuteMsg as SellableExecuteMsg, QueryMsg as SellableQueryMsg,
+        QueryResp as SellableQueryResp,
     };
     use serde_json::json;
     use token::QueryResp as TokenQueryResp;
@@ -169,7 +166,7 @@ mod tests {
         let msg = json!({
             "seat_token": seat_meta,
             "ownable": {"owner": CREATOR},
-            "redeemable": {"locked_tokens": Set::<String>::new()},
+            "redeemable": {"locked_items": Set::<String>::new()},
         })
         .to_string();
         let env = mock_env();
@@ -179,7 +176,7 @@ mod tests {
         assert_eq!(0, res.messages.len());
 
         // mint a token
-        for (token_id, price) in vec![("1", 100), ("2", 200)] {
+        for (token_id, price) in vec![("1", 200), ("2", 100)] {
             let msg = ExecuteMsg::<TokenMetadata, Empty>::Mint(MintMsg {
                 token_id: token_id.to_string(),
                 owner: CREATOR.to_string(),
@@ -225,18 +222,17 @@ mod tests {
             json!({ "sellable_token": query_msg }).to_string(),
         )
         .unwrap();
-        let result: SellableQueryResp = from_binary(&res).unwrap();
+        let result: SellableQueryResp<TokenMetadata> = from_binary(&res).unwrap();
         match result {
-            SellableQueryResp::Result(res) => {
-                let listed_tokens: ListedTokensResponse<TokenMetadata> = from_binary(&res).unwrap();
-                assert_eq!(listed_tokens.tokens.len(), 0);
+            SellableQueryResp::ListedTokens(res) => {
+                assert_eq!(res.len(), 0);
             }
         }
         // List the token
         let msg = SellableExecuteMsg::List {
             listings: Map::from([
-                ("1".to_string(), Uint64::new(100)),
-                ("2".to_string(), Uint64::new(200)),
+                ("1".to_string(), Uint64::new(200)),
+                ("2".to_string(), Uint64::new(100)),
             ]),
         };
         let list_msg = json!({ "sellable_token": msg }).to_string();
@@ -247,13 +243,10 @@ mod tests {
             json!({ "sellable_token": query_msg }).to_string(),
         )
         .unwrap();
-        let result: SellableQueryResp = from_binary(&res).unwrap();
+        let result: SellableQueryResp<TokenMetadata> = from_binary(&res).unwrap();
         match result {
-            SellableQueryResp::Result(res) => {
-                let listed_tokens: ListedTokensResponse<TokenMetadata> = from_binary(&res).unwrap();
-                assert_eq!(listed_tokens.tokens.len(), 2);
-                let (_, price, _) = &listed_tokens.tokens[0];
-                assert_eq!(price, Uint64::new(200)); // tokens sent in a descending order
+            SellableQueryResp::ListedTokens(res) => {
+                assert_eq!(res.len(), 2);
             }
         }
         // buy a token
@@ -272,17 +265,17 @@ mod tests {
             json!({ "sellable_token": query_msg }).to_string(),
         )
         .unwrap();
-        let result: SellableQueryResp = from_binary(&res).unwrap();
+        let result: SellableQueryResp<TokenMetadata> = from_binary(&res).unwrap();
         match result {
-            SellableQueryResp::Result(res) => {
-                let listed_tokens: ListedTokensResponse<TokenMetadata> = from_binary(&res).unwrap();
-                assert_eq!(listed_tokens.tokens.len(), 1);
-                let (_, price, _) = &listed_tokens.tokens[0];
-                assert_eq!(price, Uint64::new(200)); // tokens sent in a descending order
+            SellableQueryResp::ListedTokens(res) => {
+                assert_eq!(res.len(), 1);
+                let (token_id, price, _) = &res[0];
+                assert_eq!(token_id, "1");
+                assert_eq!(price, Uint64::new(200));
             }
         }
         // Lock the token
-        let msg = RedeemableExecuteMsg::LockItem("2".to_string());
+        let msg = RedeemableExecuteMsg::RedeemItem("1".to_string());
         let lock_msg = json!({ "redeemable": msg }).to_string();
 
         execute(
@@ -293,7 +286,7 @@ mod tests {
         )
         .unwrap();
         // Confirm the token is locked
-        let query_msg = RedeemableQueryMsg::IsRedeemed("2".to_string());
+        let query_msg = RedeemableQueryMsg::IsRedeemed("1".to_string());
         let res = query(
             deps.as_ref(),
             env.clone(),
@@ -301,14 +294,14 @@ mod tests {
         );
         let result: RedeemableQueryResp = from_binary(&res.unwrap()).unwrap();
         match result {
-            RedeemableQueryResp::Result(res) => {
+            RedeemableQueryResp::IsRedeemed(res) => {
                 assert_eq!(res, true);
             }
         }
         // buy a token
         let msg = SellableExecuteMsg::Buy {};
         let buy_msg = json!({ "sellable_token": msg }).to_string();
-        let buyer_info = mock_info("buyer", &[Coin::new(150, "burnt")]);
+        let buyer_info = mock_info("buyer", &[Coin::new(10, "burnt")]);
         let buy_response = execute(&mut deps.as_mut(), env.clone(), buyer_info, buy_msg);
         match buy_response {
             Err(val) => {
@@ -333,7 +326,7 @@ mod tests {
             TokenQueryResp::Result(res) => {
                 let tokens: TokensResponse = from_binary(&res).unwrap();
                 assert_eq!(tokens.tokens.len(), 1);
-                assert_eq!(tokens.tokens[0], "1");
+                assert_eq!(tokens.tokens[0], "2");
             }
         }
     }

@@ -50,7 +50,7 @@ pub mod contract_manager {
             .register("seat_token".to_string(), seat_token.clone())
             .unwrap();
 
-        let redeemable = Rc::new(RefCell::new(Redeemable::default()));
+        let redeemable = Rc::new(RefCell::new(Redeemable::new(Item::new("redeemed_items"))));
         contract_manager
             .register("redeemable".to_string(), redeemable.clone())
             .unwrap();
