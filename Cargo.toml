@@ -18,8 +18,8 @@ burnt-glue = "0.2.2"
 semver = "1.0.14"
 cw721 = "0.16.0"
 cw721-base = "0.16.0"
-ownable = { path = "modules/ownable" }
-metadata = { path = "modules/metadata" }
-token = { path = "modules/token" }
-sellable = { path = "modules/sellable" }
-redeemable = { path = "modules/redeemable" }
+ownable = { git = "https://github.com/burnt-labs/burnt-cw-std" }
+metadata = { git = "https://github.com/burnt-labs/burnt-cw-std" }
+token = { git = "https://github.com/burnt-labs/burnt-cw-std" }
+sellable = { git = "https://github.com/burnt-labs/burnt-cw-std" }
+redeemable = { git = "https://github.com/burnt-labs/burnt-cw-std" }

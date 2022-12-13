@@ -218,25 +218,6 @@ dependencies = [
 
 [[package]]
 name = "cw-multi-test"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3f9a8ab7c3c29ec93cb7a39ce4b14a05e053153b4a17ef7cf2246af1b7c087e"
-dependencies = [
- "anyhow",
- "cosmwasm-std",
- "cosmwasm-storage",
- "cw-storage-plus 0.13.4",
- "cw-utils 0.13.4",
- "derivative",
- "itertools",
- "prost",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "cw-multi-test"
 version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8e81b4a7821d5eeba0d23f737c16027b39a600742ca8c32eb980895ffd270f4"
@@ -252,17 +233,6 @@ dependencies = [
  "schemars",
  "serde",
  "thiserror",
-]
-
-[[package]]
-name = "cw-storage-plus"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "648b1507290bbc03a8d88463d7cd9b04b1fa0155e5eef366c4fa052b9caaac7a"
-dependencies = [
- "cosmwasm-std",
- "schemars",
- "serde",
 ]
 
 [[package]]
@@ -285,18 +255,6 @@ dependencies = [
  "cosmwasm-std",
  "schemars",
  "serde",
-]
-
-[[package]]
-name = "cw-utils"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dbaecb78c8e8abfd6b4258c7f4fbeb5c49a5e45ee4d910d3240ee8e1d714e1b"
-dependencies = [
- "cosmwasm-std",
- "schemars",
- "serde",
- "thiserror",
 ]
 
 [[package]]
@@ -565,7 +523,7 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
- "cw-multi-test 0.15.1",
+ "cw-multi-test",
  "cw-storage-plus 0.16.0",
  "cw2 0.15.1",
  "metadata",
@@ -613,12 +571,11 @@ checksum = "fc7fcc620a3bff7cdd7a365be3376c97191aeaccc2a603e600951e452615bf89"
 [[package]]
 name = "metadata"
 version = "0.1.0"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#af8d666a2969c212d1144fc3e18abfcddf8439b8"
 dependencies = [
  "burnt-glue",
- "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
- "cw-multi-test 0.13.4",
  "cw-storage-plus 0.16.0",
  "cw2 0.15.1",
  "ownable",
@@ -643,12 +600,11 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 [[package]]
 name = "ownable"
 version = "0.1.0"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#af8d666a2969c212d1144fc3e18abfcddf8439b8"
 dependencies = [
  "burnt-glue",
- "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
- "cw-multi-test 0.13.4",
  "cw-storage-plus 0.16.0",
  "cw2 0.15.1",
  "schemars",
@@ -726,12 +682,11 @@ dependencies = [
 [[package]]
 name = "redeemable"
 version = "0.1.0"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#af8d666a2969c212d1144fc3e18abfcddf8439b8"
 dependencies = [
  "burnt-glue",
- "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
- "cw-multi-test 0.13.4",
  "cw-storage-plus 0.16.0",
  "cw2 0.15.1",
  "cw721-base",
@@ -792,7 +747,7 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
- "cw-multi-test 0.15.1",
+ "cw-multi-test",
  "cw-storage-plus 0.16.0",
  "cw2 0.15.1",
  "cw721",
@@ -826,12 +781,11 @@ dependencies = [
 [[package]]
 name = "sellable"
 version = "0.1.0"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#af8d666a2969c212d1144fc3e18abfcddf8439b8"
 dependencies = [
  "burnt-glue",
- "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
- "cw-multi-test 0.13.4",
  "cw-storage-plus 0.16.0",
  "cw2 0.15.1",
  "cw721-base",
@@ -991,12 +945,11 @@ dependencies = [
 [[package]]
 name = "token"
 version = "0.1.0"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#af8d666a2969c212d1144fc3e18abfcddf8439b8"
 dependencies = [
  "burnt-glue",
- "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
- "cw-multi-test 0.13.4",
  "cw-storage-plus 0.16.0",
  "cw2 0.15.1",
  "cw721-base",
