@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, Uint64};
+use cosmwasm_std::Addr;
 use cw_storage_plus::Item;
 use serde::{Deserialize, Serialize};
 
@@ -37,9 +37,6 @@ pub struct TokenMetadata {
     /// as the minter addr
     /// question: how do we validate this?
     pub royalty_payment_address: Option<String>,
-    pub list_price: Option<Uint64>,
-    pub locked: bool,
-    pub redeemed: bool,
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");

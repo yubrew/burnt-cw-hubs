@@ -1,4 +1,5 @@
 #[cfg(not(feature = "library"))]
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{entry_point, from_slice, to_vec};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
@@ -6,12 +7,16 @@ use semver::Version;
 
 use crate::error::ContractError;
 use crate::manager::contract_manager::get_manager;
-use crate::msg::MigrateMsg;
 use crate::state::Config;
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:seat";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[cw_serde]
+pub struct MigrateMsg {
+    pub owner: String,
+}
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -73,10 +78,7 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        msg::InstantiateMsg,
-        state::{SeatMetadata, TokenMetadata},
-    };
+    use crate::state::{SeatMetadata, TokenMetadata};
 
     use super::*;
     use cosmwasm_std::{
@@ -104,16 +106,15 @@ mod tests {
     #[test]
     fn test_seat_module_instantiation() {
         let mut deps = mock_dependencies();
-        let seat_token_meta = InstantiateMsg {
-            name: "Kenny's Token Contract".to_string(),
-            symbol: "KNY".to_string(),
-            minter: CREATOR.to_string(),
-        };
         let metadata_msg = SeatMetadata {
             name: "Kenny's contract".to_string(),
         };
         let msg = json!({
-            "seat_token": seat_token_meta,
+            "seat_token": {
+                "name": "Kenny's Token Contract".to_string(),
+                "symbol": "KNY".to_string(),
+                "minter": CREATOR.to_string(),
+            },
             "metadata": {
                 "metadata": metadata_msg
             }
@@ -158,13 +159,12 @@ mod tests {
     #[test]
     fn test_seat_module_tokens() {
         let mut deps = mock_dependencies();
-        let seat_meta = InstantiateMsg {
-            name: "Kenny's contract".to_string(),
-            symbol: "KNY".to_string(),
-            minter: CREATOR.to_string(),
-        };
         let msg = json!({
-            "seat_token": seat_meta,
+            "seat_token": {
+                "name": "Kenny's contract".to_string(),
+                "symbol": "KNY".to_string(),
+                "minter": CREATOR.to_string(),
+            },
             "ownable": {"owner": CREATOR},
             "redeemable": {"locked_items": Set::<String>::new()},
         })
@@ -176,7 +176,7 @@ mod tests {
         assert_eq!(0, res.messages.len());
 
         // mint a token
-        for (token_id, price) in vec![("1", 200), ("2", 100)] {
+        for token_id in vec!["1", "2"] {
             let msg = ExecuteMsg::<TokenMetadata, Empty>::Mint(MintMsg {
                 token_id: token_id.to_string(),
                 owner: CREATOR.to_string(),
@@ -186,9 +186,6 @@ mod tests {
                     description: Some("".to_string()),
                     royalty_percentage: Some(0),
                     royalty_payment_address: Some("".to_string()),
-                    list_price: Some(Uint64::new(price)),
-                    locked: false,
-                    redeemed: false,
                 },
             });
             let mint_msg = json!({ "seat_token": msg }).to_string();
