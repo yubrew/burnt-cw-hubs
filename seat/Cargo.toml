@@ -1,5 +1,5 @@
 [package]
-name = "hub"
+name = "seat"
 version = "0.1.0"
 authors = ["peartes <kenny.fale.kf@gmail.com>"]
 edition = "2021"
@@ -53,6 +53,11 @@ burnt-glue = { workspace = true }
 semver = { workspace = true }
 ownable = { workspace = true }
 metadata = { workspace = true }
+token = { workspace = true }
+sellable = { workspace = true }
+redeemable = { workspace = true }
+cw721 = { workspace = true }
+cw721-base = { workspace = true }
 
 [dev-dependencies]
 cw-multi-test = "0.15.1"

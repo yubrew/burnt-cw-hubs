@@ -21,21 +21,22 @@ pub struct ContractVersion {
     pub version: String,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
-pub struct SocialLinks {
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+pub struct SeatMetadata {
     pub name: String,
-    pub url: String,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
-pub struct HubMetadata {
-    pub name: String,
-    pub hub_url: String,
-    pub description: String,
-    pub tags: Vec<String>,
-    pub social_links: Vec<SocialLinks>,
-    pub creator: String,
-    pub image_url: String,
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+pub struct TokenMetadata {
+    pub description: Option<String>,
+    pub name: Option<String>,
+    /// This is how much the minter takes as a cut when sold
+    /// royalties are owed on this token if it is Some
+    pub royalty_percentage: Option<u64>,
+    /// The payment address, may be different to or the same
+    /// as the minter addr
+    /// question: how do we validate this?
+    pub royalty_payment_address: Option<String>,
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");
