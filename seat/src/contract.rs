@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{entry_point, from_slice, to_vec};
-use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, CustomMsg};
 use cw2::set_contract_version;
 use semver::Version;
 
@@ -24,22 +24,23 @@ pub fn instantiate(
     env: Env,
     info: MessageInfo,
     msg: String,
-) -> Result<Response<Binary>, String> {
+) -> Result<Response, String> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     // instantiate all modules
     let mut manager = get_manager();
-    manager.instantiate(deps, env, info, msg.as_str())
+    manager.instantiate(deps, env, info, msg.as_str())?;
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: &mut DepsMut,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: String,
 ) -> Result<Response, String> {
-    let mut manager = get_manager();
-    manager.execute(deps, env, info, msg.as_str())?;
+    // let mut manager = get_manager();
+    // manager.execute(deps, env, info, msg.as_str())?;
     Ok(Response::default())
 }
 
@@ -190,7 +191,7 @@ mod tests {
             });
             let mint_msg = json!({ "seat_token": msg }).to_string();
 
-            execute(&mut deps.as_mut(), env.clone(), info.clone(), mint_msg).unwrap();
+            execute(deps.as_mut(), env.clone(), info.clone(), mint_msg).unwrap();
         }
 
         let query_msg = QueryMsg::<Cw721QueryMsg>::NumTokens {};
@@ -233,7 +234,7 @@ mod tests {
             ]),
         };
         let list_msg = json!({ "sellable_token": msg }).to_string();
-        execute(&mut deps.as_mut(), env.clone(), info.clone(), list_msg).unwrap();
+        execute(deps.as_mut(), env.clone(), info.clone(), list_msg).unwrap();
         let res = query(
             deps.as_ref(),
             env.clone(),
@@ -250,7 +251,7 @@ mod tests {
         let msg = SellableExecuteMsg::Buy {};
         let buy_msg = json!({ "sellable_token": msg }).to_string();
         let buyer_info = mock_info("buyer", &[Coin::new(200, "burnt")]);
-        execute(&mut deps.as_mut(), env.clone(), buyer_info, buy_msg).unwrap();
+        execute(deps.as_mut(), env.clone(), buyer_info, buy_msg).unwrap();
         // Get all listed tokens
         let query_msg = SellableQueryMsg::ListedTokens {
             start_after: None,
@@ -276,7 +277,7 @@ mod tests {
         let lock_msg = json!({ "redeemable": msg }).to_string();
 
         execute(
-            &mut deps.as_mut(),
+            deps.as_mut(),
             env.clone(),
             info.clone(),
             lock_msg.clone(),
@@ -299,7 +300,7 @@ mod tests {
         let msg = SellableExecuteMsg::Buy {};
         let buy_msg = json!({ "sellable_token": msg }).to_string();
         let buyer_info = mock_info("buyer", &[Coin::new(10, "burnt")]);
-        let buy_response = execute(&mut deps.as_mut(), env.clone(), buyer_info, buy_msg);
+        let buy_response = execute(deps.as_mut(), env.clone(), buyer_info, buy_msg);
         match buy_response {
             Err(val) => {
                 print!("{:?}", val);

@@ -19,11 +19,12 @@ pub fn instantiate(
     env: Env,
     info: MessageInfo,
     msg: String,
-) -> Result<Response<Binary>, String> {
+) -> Result<Response, String> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     // instantiate all modules
     let mut manager = get_manager();
-    manager.instantiate(deps, env, info, msg.as_str())
+    manager.instantiate(deps, env, info, msg.as_str())?;
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -33,7 +34,7 @@ pub fn execute(
     _info: MessageInfo,
     _msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    unimplemented!()
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

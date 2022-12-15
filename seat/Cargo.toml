@@ -57,7 +57,7 @@ token = { workspace = true }
 sellable = { workspace = true }
 redeemable = { workspace = true }
 cw721 = { workspace = true }
-cw721-base = { workspace = true }
+cw721-base = { workspace = true, features = ["library"] }
 
 [dev-dependencies]
 cw-multi-test = "0.15.1"

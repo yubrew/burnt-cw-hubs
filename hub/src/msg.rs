@@ -1,5 +1,4 @@
-use cosmwasm_schema::{cw_serde, QueryResponses};
-use serde_json::Value;
+use cosmwasm_schema::cw_serde;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -15,8 +14,6 @@ pub struct MigrateMsg {
 }
 
 #[cw_serde]
-#[derive(QueryResponses)]
 pub enum QueryMsg {
-    #[returns(Value)]
     Query(String),
 }
