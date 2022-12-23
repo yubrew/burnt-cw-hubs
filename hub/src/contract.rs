@@ -1,13 +1,16 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{entry_point, from_slice, to_vec};
-use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, to_binary};
 use cw2::set_contract_version;
+use cw_storage_plus::Item;
 use semver::Version;
 
 use crate::error::ContractError;
-use crate::manager::contract_manager::get_manager;
-use crate::msg::{ExecuteMsg, MigrateMsg};
-use crate::state::Config;
+use crate::msg::{ExecuteMsg, MigrateMsg, InstantiateMsg, QueryMsg};
+use crate::state::{Config, HubMetadata};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:hub";
@@ -18,12 +21,19 @@ pub fn instantiate(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: String,
-) -> Result<Response, String> {
+    msg: InstantiateMsg,
+) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     // instantiate all modules
-    let mut manager = get_manager();
-    manager.instantiate(deps, env, info, msg.as_str())?;
+    let mut mut_deps = Box::new(deps);
+
+    let mut ownable = ownable::Ownable::default();
+    ownable.instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
+    .map_err(|err| ContractError::OwnableError(err))?;
+
+    let mut metadata = metadata::Metadata::new(Item::<HubMetadata>::new("metadata"), Rc::new(RefCell::new(ownable)));
+    metadata.instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
+    .map_err(|err| ContractError::MetadataError(err))?;
     Ok(Response::default())
 }
 
@@ -38,9 +48,23 @@ pub fn execute(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: String) -> StdResult<Binary> {
-    let mut manager = get_manager();
-    manager.query(&deps.clone(), env, msg.as_str())
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    match msg {
+        QueryMsg::Ownable(query_msg) => {
+            let ownable = ownable::Ownable::default();
+            return ownable.query(&deps, env, query_msg)
+            .map(|res| to_binary(&res))
+            .unwrap()
+        },
+        QueryMsg::Metadata(query_msg) => {
+            let ownable = ownable::Ownable::default();
+        
+            let metadata = metadata::Metadata::new(Item::<HubMetadata>::new("metadata"), Rc::new(RefCell::new(ownable)));
+            return metadata.query(&deps, env, query_msg)
+            .map(|res| to_binary(&res))
+            .unwrap()
+        }
+    }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -81,28 +105,44 @@ mod tests {
     };
     use metadata::QueryResp as MetadataQueryResp;
     use ownable::QueryResp as OwnableQueryResp;
-    use serde_json::json;
+    use serde_json::{json, from_str};
 
     const CREATOR: &str = "CREATOR";
     // make sure ownable module is instantiated
     #[test]
     fn test_ownable_module() {
         let mut deps = mock_dependencies();
+        let metadata_msg = HubMetadata {
+            name: "Kenny's contract".to_string(),
+            hub_url: "find me here".to_string(),
+            description: "Awesome Hub".to_string(),
+            tags: vec!["awesome".to_string(), "wild".to_string()],
+            social_links: vec![SocialLinks {
+                name: "discord".to_string(),
+                url: "discord link here".to_string(),
+            }],
+            creator: CREATOR.to_string(),
+            image_url: "image link here".to_string(),
+        };
         //no owner specified in the instantiation message
-        let msg = json!({
+        let mut msg = json!({
+            "metadata": {"metadata": metadata_msg},
             "ownable": {"owner": CREATOR}
         })
         .to_string();
+        let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
         let env = mock_env();
         let info = mock_info(CREATOR, &[]);
 
-        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
+        msg = json!({"ownable": {"is_owner": CREATOR}}).to_string();
+        let query_msg: QueryMsg = from_str(&msg).unwrap();
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({"ownable": {"is_owner": CREATOR}}).to_string(),
+            query_msg,
         )
         .unwrap();
         let owner: OwnableQueryResp = from_binary(&res).unwrap();
@@ -128,22 +168,29 @@ mod tests {
             creator: CREATOR.to_string(),
             image_url: "image link here".to_string(),
         };
-        let msg = json!({
+        let mut msg = json!({
+            "ownable": {
+                "owner": CREATOR
+            },
             "metadata": {
                 "metadata": metadata_msg
             }
         })
         .to_string();
+        let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
+
         let env = mock_env();
         let info = mock_info(CREATOR, &[]);
 
-        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
+        msg = json!({"metadata": {"get_metadata": {}}}).to_string();
+        let query_msg: QueryMsg = from_str(&msg).unwrap();
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({"metadata": {"get_metadata": {}}}).to_string(),
+            query_msg
         )
         .unwrap();
         let metadata: MetadataQueryResp<HubMetadata> = from_binary(&res).unwrap();
