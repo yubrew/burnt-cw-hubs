@@ -4,7 +4,7 @@ use std::rc::Rc;
 use burnt_glue::module::Module;
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, from_slice, to_binary, to_vec, Empty, Uint64};
+use cosmwasm_std::{entry_point, from_slice, to_binary, to_vec, Empty};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
 use cw_storage_plus::{Item, Map};
@@ -13,7 +13,7 @@ use token::Tokens;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{Config, SeatMetadata, TokenMetadata};
+use crate::state::{Config, SeatMetadata, SeatModules, TokenMetadata};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:seat";
@@ -33,63 +33,8 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     // instantiate all modules
-    let mut mut_deps = Box::new(deps);
-
-    // ownable module
-    let mut ownable = ownable::Ownable::default();
-    ownable
-        .instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
-        .map_err(|err| ContractError::OwnableError(err))?;
-
-    let borrowable_ownable = Rc::new(RefCell::new(ownable));
-    // metadata module
-    let mut metadata = metadata::Metadata::new(
-        Item::<SeatMetadata>::new("metadata"),
-        borrowable_ownable.clone(),
-    );
-    metadata
-        .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
-        .map_err(|err| ContractError::MetadataError(err))?;
-
-    // Burnt token module
-    let mut seat_token = Tokens::<TokenMetadata, Empty, Empty, Empty>::new(
-        cw721_base::Cw721Contract::default(),
-        Some("burnt".to_string()),
-    );
-    seat_token
-        .instantiate(&mut mut_deps.branch(), &env, &info, msg.seat_token)
-        .map_err(|err| ContractError::SeatTokenError(err))?;
-
-    // Redeemable token
-    let mut redeemable = redeemable::Redeemable::new(Item::new("redeemed_items"));
-    redeemable
-        .instantiate(&mut mut_deps.branch(), &env, &info, msg.redeemable)
-        .map_err(|err| ContractError::RedeemableError(err))?;
-
-    // Sellable token
-    let mut sellable_token = sellable::Sellable::new(
-        Rc::new(RefCell::new(seat_token)),
-        borrowable_ownable.clone(),
-        Map::new("listed_tokens"),
-    );
-    if let Some(sellable_items) = msg.sellable {
-        sellable_token
-            .instantiate(&mut mut_deps.branch(), &env, &info, sellable_items)
-            .map_err(|err| ContractError::SellableError(err))?;
-    } else {
-        sellable_token
-            .instantiate(
-                &mut mut_deps.branch(),
-                &env,
-                &info,
-                sellable::msg::InstantiateMsg {
-                    tokens: schemars::Map::<String, Uint64>::new(),
-                },
-            )
-            .map_err(|err| ContractError::SellableError(err))?;
-    }
-
-    Ok(Response::default())
+    let mut modules = SeatModules::default();
+    modules.instantiate(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
