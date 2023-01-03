@@ -1,6 +1,12 @@
-use cosmwasm_std::Addr;
+use std::{cell::RefCell, rc::Rc};
+
+use burnt_glue::module::Module;
+use cosmwasm_std::{Addr, DepsMut, MessageInfo, Response, Env};
 use cw_storage_plus::Item;
-use serde::{Deserialize, Serialize};
+use ownable::Ownable;
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+
+use crate::{msg::InstantiateMsg, ContractError};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Config {
@@ -36,6 +42,41 @@ pub struct HubMetadata {
     pub social_links: Vec<SocialLinks>,
     pub creator: String,
     pub image_url: String,
+}
+
+pub struct HubModules<'a, T> 
+    where T: Serialize + DeserializeOwned
+{
+    pub ownable: Ownable<'a>,
+    pub metadata: metadata::Metadata<'a, T>
+}
+
+impl<'a> Default for HubModules<'a, HubMetadata> {
+    fn default() -> Self {
+        let ownable = ownable::Ownable::default();
+        let borrowable_ownable = Rc::new(RefCell::new(ownable));
+
+        let metadata = metadata::Metadata::new(Item::<HubMetadata>::new("metadata"), borrowable_ownable.clone());
+
+        HubModules { ownable:borrowable_ownable.take(), metadata }
+    }
+}
+
+impl<'a> HubModules<'a, HubMetadata> {
+    pub fn new (ownable_module: Ownable<'a>, metadata_module: metadata::Metadata<'a, HubMetadata>) -> Self {
+        HubModules { ownable: ownable_module, metadata: metadata_module }
+    }
+    pub fn instantiate_modules(&mut self, deps: DepsMut, env: Env, info: MessageInfo, msg: InstantiateMsg) -> Result<Response, ContractError> {
+        // Instantiate all modules
+        let mut mut_deps = Box::new(deps);
+
+        self.ownable.instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
+        .map_err(|err| ContractError::OwnableError(err))?;
+
+        self.metadata.instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
+        .map_err(|err| ContractError::MetadataError(err))?;
+        Ok(Response::default())
+    }
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");

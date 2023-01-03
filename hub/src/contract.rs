@@ -1,7 +1,7 @@
+#[cfg(not(feature = "library"))]
 use std::cell::RefCell;
 use std::rc::Rc;
-
-#[cfg(not(feature = "library"))]
+use burnt_glue::module::Module;
 use cosmwasm_std::{entry_point, from_slice, to_vec};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, to_binary};
 use cw2::set_contract_version;
@@ -10,7 +10,7 @@ use semver::Version;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, MigrateMsg, InstantiateMsg, QueryMsg};
-use crate::state::{Config, HubMetadata};
+use crate::state::{Config, HubMetadata, HubModules};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:hub";
@@ -25,16 +25,8 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     // instantiate all modules
-    let mut mut_deps = Box::new(deps);
-
-    let mut ownable = ownable::Ownable::default();
-    ownable.instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
-    .map_err(|err| ContractError::OwnableError(err))?;
-
-    let mut metadata = metadata::Metadata::new(Item::<HubMetadata>::new("metadata"), Rc::new(RefCell::new(ownable)));
-    metadata.instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
-    .map_err(|err| ContractError::MetadataError(err))?;
-    Ok(Response::default())
+    let mut modules = HubModules::default();
+    modules.instantiate_modules(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
