@@ -1,10 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
-use cosmwasm_std::{Addr, DepsMut, MessageInfo, Response, Env};
+use cosmwasm_std::{Addr, DepsMut, Env, MessageInfo, Response};
 use cw_storage_plus::Item;
 use ownable::Ownable;
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{msg::InstantiateMsg, ContractError};
 
@@ -44,11 +44,12 @@ pub struct HubMetadata {
     pub image_url: String,
 }
 
-pub struct HubModules<'a, T> 
-    where T: Serialize + DeserializeOwned
+pub struct HubModules<'a, T>
+where
+    T: Serialize + DeserializeOwned,
 {
     pub ownable: Ownable<'a>,
-    pub metadata: metadata::Metadata<'a, T>
+    pub metadata: metadata::Metadata<'a, T>,
 }
 
 impl<'a> Default for HubModules<'a, HubMetadata> {
@@ -56,25 +57,45 @@ impl<'a> Default for HubModules<'a, HubMetadata> {
         let ownable = ownable::Ownable::default();
         let borrowable_ownable = Rc::new(RefCell::new(ownable));
 
-        let metadata = metadata::Metadata::new(Item::<HubMetadata>::new("metadata"), borrowable_ownable.clone());
+        let metadata = metadata::Metadata::new(
+            Item::<HubMetadata>::new("metadata"),
+            borrowable_ownable.clone(),
+        );
 
-        HubModules { ownable:borrowable_ownable.take(), metadata }
+        HubModules {
+            ownable: borrowable_ownable.take(),
+            metadata,
+        }
     }
 }
 
 impl<'a> HubModules<'a, HubMetadata> {
-    pub fn new (ownable_module: Ownable<'a>, metadata_module: metadata::Metadata<'a, HubMetadata>) -> Self {
-        HubModules { ownable: ownable_module, metadata: metadata_module }
+    pub fn new(
+        ownable_module: Ownable<'a>,
+        metadata_module: metadata::Metadata<'a, HubMetadata>,
+    ) -> Self {
+        HubModules {
+            ownable: ownable_module,
+            metadata: metadata_module,
+        }
     }
-    pub fn instantiate_modules(&mut self, deps: DepsMut, env: Env, info: MessageInfo, msg: InstantiateMsg) -> Result<Response, ContractError> {
+    pub fn instantiate_modules(
+        &mut self,
+        deps: DepsMut,
+        env: Env,
+        info: MessageInfo,
+        msg: InstantiateMsg,
+    ) -> Result<Response, ContractError> {
         // Instantiate all modules
         let mut mut_deps = Box::new(deps);
 
-        self.ownable.instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
-        .map_err(|err| ContractError::OwnableError(err))?;
+        self.ownable
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
+            .map_err(|err| ContractError::OwnableError(err))?;
 
-        self.metadata.instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
-        .map_err(|err| ContractError::MetadataError(err))?;
+        self.metadata
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
+            .map_err(|err| ContractError::MetadataError(err))?;
         Ok(Response::default())
     }
 }

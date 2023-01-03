@@ -1,12 +1,14 @@
 #[cfg(not(feature = "library"))]
 use burnt_glue::module::Module;
 use cosmwasm_std::{entry_point, from_slice, to_vec};
-use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, to_binary};
+use cosmwasm_std::{
+    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult,
+};
 use cw2::set_contract_version;
 use semver::Version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, MigrateMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{Config, HubModules};
 
 // version info for migration info
@@ -42,16 +44,20 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::Ownable(query_msg) => {
             let modules = HubModules::default();
 
-            return modules.ownable.query(&deps, env, query_msg)
-            .map(|res| to_binary(&res))
-            .unwrap()
-        },
+            return modules
+                .ownable
+                .query(&deps, env, query_msg)
+                .map(|res| to_binary(&res))
+                .unwrap();
+        }
         QueryMsg::Metadata(query_msg) => {
             let modules = HubModules::default();
 
-            return modules.metadata.query(&deps, env, query_msg)
-            .map(|res| to_binary(&res))
-            .unwrap()
+            return modules
+                .metadata
+                .query(&deps, env, query_msg)
+                .map(|res| to_binary(&res))
+                .unwrap();
         }
     }
 }
@@ -94,7 +100,7 @@ mod tests {
     };
     use metadata::QueryResp as MetadataQueryResp;
     use ownable::QueryResp as OwnableQueryResp;
-    use serde_json::{json, from_str};
+    use serde_json::{from_str, json};
 
     const CREATOR: &str = "CREATOR";
     // make sure ownable module is instantiated
@@ -128,12 +134,7 @@ mod tests {
 
         msg = json!({"ownable": {"is_owner": CREATOR}}).to_string();
         let query_msg: QueryMsg = from_str(&msg).unwrap();
-        let res = query(
-            deps.as_ref(),
-            env.clone(),
-            query_msg,
-        )
-        .unwrap();
+        let res = query(deps.as_ref(), env.clone(), query_msg).unwrap();
         let owner: OwnableQueryResp = from_binary(&res).unwrap();
         match owner {
             OwnableQueryResp::IsOwner(owner) => {
@@ -176,12 +177,7 @@ mod tests {
 
         msg = json!({"metadata": {"get_metadata": {}}}).to_string();
         let query_msg: QueryMsg = from_str(&msg).unwrap();
-        let res = query(
-            deps.as_ref(),
-            env.clone(),
-            query_msg
-        )
-        .unwrap();
+        let res = query(deps.as_ref(), env.clone(), query_msg).unwrap();
         let metadata: MetadataQueryResp<HubMetadata> = from_binary(&res).unwrap();
         match metadata {
             MetadataQueryResp::Metadata(meta) => {

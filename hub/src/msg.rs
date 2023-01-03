@@ -1,13 +1,13 @@
 use cosmwasm_schema::cw_serde;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::state::HubMetadata;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub struct  InstantiateMsg {
+pub struct InstantiateMsg {
     pub ownable: ownable::InstantiateMsg,
-    pub metadata: metadata::InstantiateMsg<HubMetadata>
+    pub metadata: metadata::InstantiateMsg<HubMetadata>,
 }
 
 #[cw_serde]
@@ -23,5 +23,5 @@ pub struct MigrateMsg {
 #[cw_serde]
 pub enum QueryMsg {
     Ownable(ownable::QueryMsg),
-    Metadata(metadata::QueryMsg)
+    Metadata(metadata::QueryMsg),
 }
