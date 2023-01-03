@@ -1,16 +1,13 @@
 #[cfg(not(feature = "library"))]
-use std::cell::RefCell;
-use std::rc::Rc;
 use burnt_glue::module::Module;
 use cosmwasm_std::{entry_point, from_slice, to_vec};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, to_binary};
 use cw2::set_contract_version;
-use cw_storage_plus::Item;
 use semver::Version;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, MigrateMsg, InstantiateMsg, QueryMsg};
-use crate::state::{Config, HubMetadata, HubModules};
+use crate::state::{Config, HubModules};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:hub";
@@ -43,16 +40,16 @@ pub fn execute(
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Ownable(query_msg) => {
-            let ownable = ownable::Ownable::default();
-            return ownable.query(&deps, env, query_msg)
+            let modules = HubModules::default();
+
+            return modules.ownable.query(&deps, env, query_msg)
             .map(|res| to_binary(&res))
             .unwrap()
         },
         QueryMsg::Metadata(query_msg) => {
-            let ownable = ownable::Ownable::default();
-        
-            let metadata = metadata::Metadata::new(Item::<HubMetadata>::new("metadata"), Rc::new(RefCell::new(ownable)));
-            return metadata.query(&deps, env, query_msg)
+            let modules = HubModules::default();
+
+            return modules.metadata.query(&deps, env, query_msg)
             .map(|res| to_binary(&res))
             .unwrap()
         }
