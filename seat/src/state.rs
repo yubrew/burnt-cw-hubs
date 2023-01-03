@@ -51,9 +51,9 @@ where
     T: Serialize + DeserializeOwned,
     U: Serialize + DeserializeOwned + Clone,
 {
-    pub ownable: Ownable<'a>,
+    pub ownable: Rc<RefCell<Ownable<'a>>>,
     pub metadata: metadata::Metadata<'a, T>,
-    pub seat_token: Tokens<'a, U, Empty, Empty, Empty>,
+    pub seat_token: Rc<RefCell<Tokens<'a, U, Empty, Empty, Empty>>>,
     pub redeemable: redeemable::Redeemable<'a>,
     pub sellable_token: sellable::Sellable<'a, U, Empty, Empty, Empty>,
 }
@@ -87,9 +87,9 @@ impl<'a> Default for SeatModules<'a, SeatMetadata, TokenMetadata> {
         );
 
         SeatModules {
-            ownable: borrowable_ownable.take(),
+            ownable: borrowable_ownable,
             metadata,
-            seat_token: borrowable_seat_token.take(),
+            seat_token: borrowable_seat_token,
             redeemable,
             sellable_token,
         }
@@ -108,6 +108,7 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
 
         // ownable module
         self.ownable
+            .borrow_mut()
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
             .map_err(|err| ContractError::OwnableError(err))?;
 
@@ -118,6 +119,7 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
 
         // Burnt token module
         self.seat_token
+            .borrow_mut()
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.seat_token)
             .map_err(|err| ContractError::SeatTokenError(err))?;
 

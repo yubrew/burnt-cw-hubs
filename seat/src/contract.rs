@@ -1,19 +1,14 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use burnt_glue::module::Module;
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, from_slice, to_binary, to_vec, Empty};
+use cosmwasm_std::{entry_point, from_slice, to_binary, to_vec};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
-use cw_storage_plus::{Item, Map};
 use semver::Version;
-use token::Tokens;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{Config, SeatMetadata, SeatModules, TokenMetadata};
+use crate::state::{Config, SeatModules};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:seat";
@@ -45,55 +40,37 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     let mut mut_deps = Box::new(deps);
+    let mut modules = SeatModules::default();
     match msg {
         ExecuteMsg::Ownable(msg) => {
-            let mut ownable = ownable::Ownable::default();
-            ownable
+            modules
+                .ownable
+                .borrow_mut()
                 .execute(&mut mut_deps, env, info, msg)
                 .map_err(|err| ContractError::OwnableError(err))?;
         }
         ExecuteMsg::Metadata(msg) => {
-            // ownable module
-            let ownable = ownable::Ownable::default();
-
-            // metadata module
-            let mut metadata = metadata::Metadata::new(
-                Item::<SeatMetadata>::new("metadata"),
-                Rc::new(RefCell::new(ownable)),
-            );
-            metadata
+            modules
+                .metadata
                 .execute(&mut mut_deps, env, info, msg)
                 .map_err(|err| ContractError::MetadataError(err))?;
         }
         ExecuteMsg::SeatToken(msg) => {
-            let mut seat_token = Tokens::<TokenMetadata, Empty, Empty, Empty>::new(
-                cw721_base::Cw721Contract::default(),
-                Some("burnt".to_string()),
-            );
-            seat_token
+            modules
+                .seat_token
+                .borrow_mut()
                 .execute(&mut mut_deps, env, info, msg)
                 .map_err(|err| ContractError::SeatTokenError(err))?;
         }
         ExecuteMsg::Redeemable(msg) => {
-            let mut redeemable = redeemable::Redeemable::new(Item::new("redeemed_items"));
-            redeemable
+            modules
+                .redeemable
                 .execute(&mut mut_deps, env, info, msg)
                 .map_err(|err| ContractError::RedeemableError(err))?;
         }
         ExecuteMsg::Sellable(msg) => {
-            let ownable = ownable::Ownable::default();
-
-            let seat_token = Tokens::<TokenMetadata, Empty, Empty, Empty>::new(
-                cw721_base::Cw721Contract::default(),
-                Some("burnt".to_string()),
-            );
-
-            let mut sellable_token = sellable::Sellable::new(
-                Rc::new(RefCell::new(seat_token)),
-                Rc::new(RefCell::new(ownable)),
-                Map::new("listed_tokens"),
-            );
-            sellable_token
+            modules
+                .sellable_token
                 .execute(&mut mut_deps, env, info, msg)
                 .map_err(|err| ContractError::SellableError(err))?;
         }
@@ -103,47 +80,22 @@ pub fn execute(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    let modules = SeatModules::default();
     match msg {
         QueryMsg::Ownable(msg) => {
-            let ownable = ownable::Ownable::default();
-            to_binary(&ownable.query(&deps, env, msg).unwrap())
+            to_binary(&modules.ownable.borrow_mut().query(&deps, env, msg).unwrap())
         }
-        QueryMsg::Metadata(msg) => {
-            // ownable module
-            let ownable = ownable::Ownable::default();
-
-            // metadata module
-            let metadata = metadata::Metadata::new(
-                Item::<SeatMetadata>::new("metadata"),
-                Rc::new(RefCell::new(ownable)),
-            );
-            to_binary(&metadata.query(&deps, env, msg).unwrap())
-        }
-        QueryMsg::SeatToken(msg) => {
-            let seat_token = Tokens::<TokenMetadata, Empty, Empty, Empty>::new(
-                cw721_base::Cw721Contract::default(),
-                Some("burnt".to_string()),
-            );
-            to_binary(&seat_token.query(&deps, env, msg).unwrap())
-        }
-        QueryMsg::Redeemable(msg) => {
-            let redeemable = redeemable::Redeemable::new(Item::new("redeemed_items"));
-            to_binary(&redeemable.query(&deps, env, msg).unwrap())
-        }
+        QueryMsg::Metadata(msg) => to_binary(&modules.metadata.query(&deps, env, msg).unwrap()),
+        QueryMsg::SeatToken(msg) => to_binary(
+            &modules
+                .seat_token
+                .borrow_mut()
+                .query(&deps, env, msg)
+                .unwrap(),
+        ),
+        QueryMsg::Redeemable(msg) => to_binary(&modules.redeemable.query(&deps, env, msg).unwrap()),
         QueryMsg::Sellable(msg) => {
-            let ownable = ownable::Ownable::default();
-
-            let seat_token = Tokens::<TokenMetadata, Empty, Empty, Empty>::new(
-                cw721_base::Cw721Contract::default(),
-                Some("burnt".to_string()),
-            );
-
-            let sellable_token = sellable::Sellable::new(
-                Rc::new(RefCell::new(seat_token)),
-                Rc::new(RefCell::new(ownable)),
-                Map::new("listed_tokens"),
-            );
-            to_binary(&sellable_token.query(&deps, env, msg).unwrap())
+            to_binary(&modules.sellable_token.query(&deps, env, msg).unwrap())
         }
     }
 }
