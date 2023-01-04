@@ -1,12 +1,15 @@
 use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
-use cosmwasm_std::{Addr, DepsMut, Env, MessageInfo, Response, StdResult, Binary, Deps, to_binary};
+use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw_storage_plus::Item;
 use ownable::Ownable;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{msg::{InstantiateMsg, QueryMsg}, ContractError};
+use crate::{
+    msg::{InstantiateMsg, QueryMsg},
+    ContractError,
+};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Config {
@@ -101,7 +104,7 @@ impl<'a> HubModules<'a, HubMetadata> {
 
     pub fn query(&self, deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         match msg {
-            QueryMsg::Ownable(query_msg) => {    
+            QueryMsg::Ownable(query_msg) => {
                 return self
                     .ownable
                     .query(&deps, env, query_msg)

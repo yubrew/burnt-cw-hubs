@@ -1,9 +1,6 @@
 #[cfg(not(feature = "library"))]
-use burnt_glue::module::Module;
 use cosmwasm_std::{entry_point, from_slice, to_vec};
-use cosmwasm_std::{
-    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult,
-};
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
 use semver::Version;
 
