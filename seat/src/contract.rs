@@ -1,7 +1,6 @@
-use burnt_glue::module::Module;
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, from_slice, to_binary, to_vec};
+use cosmwasm_std::{entry_point, from_slice, to_vec};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
 use semver::Version;
@@ -39,65 +38,14 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    let mut mut_deps = Box::new(deps);
     let mut modules = SeatModules::default();
-    match msg {
-        ExecuteMsg::Ownable(msg) => {
-            modules
-                .ownable
-                .borrow_mut()
-                .execute(&mut mut_deps, env, info, msg)
-                .map_err(|err| ContractError::OwnableError(err))?;
-        }
-        ExecuteMsg::Metadata(msg) => {
-            modules
-                .metadata
-                .execute(&mut mut_deps, env, info, msg)
-                .map_err(|err| ContractError::MetadataError(err))?;
-        }
-        ExecuteMsg::SeatToken(msg) => {
-            modules
-                .seat_token
-                .borrow_mut()
-                .execute(&mut mut_deps, env, info, msg)
-                .map_err(|err| ContractError::SeatTokenError(err))?;
-        }
-        ExecuteMsg::Redeemable(msg) => {
-            modules
-                .redeemable
-                .execute(&mut mut_deps, env, info, msg)
-                .map_err(|err| ContractError::RedeemableError(err))?;
-        }
-        ExecuteMsg::Sellable(msg) => {
-            modules
-                .sellable_token
-                .execute(&mut mut_deps, env, info, msg)
-                .map_err(|err| ContractError::SellableError(err))?;
-        }
-    }
-    Ok(Response::default())
+    modules.execute(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     let modules = SeatModules::default();
-    match msg {
-        QueryMsg::Ownable(msg) => {
-            to_binary(&modules.ownable.borrow_mut().query(&deps, env, msg).unwrap())
-        }
-        QueryMsg::Metadata(msg) => to_binary(&modules.metadata.query(&deps, env, msg).unwrap()),
-        QueryMsg::SeatToken(msg) => to_binary(
-            &modules
-                .seat_token
-                .borrow_mut()
-                .query(&deps, env, msg)
-                .unwrap(),
-        ),
-        QueryMsg::Redeemable(msg) => to_binary(&modules.redeemable.query(&deps, env, msg).unwrap()),
-        QueryMsg::Sellable(msg) => {
-            to_binary(&modules.sellable_token.query(&deps, env, msg).unwrap())
-        }
-    }
+    modules.query(deps, env, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

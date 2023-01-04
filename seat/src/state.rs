@@ -1,13 +1,18 @@
 use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
-use cosmwasm_std::{Addr, DepsMut, Empty, Env, MessageInfo, Response, Uint64};
+use cosmwasm_std::{
+    to_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult, Uint64,
+};
 use cw_storage_plus::{Item, Map};
 use ownable::Ownable;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use token::Tokens;
 
-use crate::{msg::InstantiateMsg, ContractError};
+use crate::{
+    msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
+    ContractError,
+};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Config {
@@ -147,6 +152,65 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         }
 
         Ok(Response::default())
+    }
+
+    pub fn execute(
+        &mut self,
+        deps: DepsMut,
+        env: Env,
+        info: MessageInfo,
+        msg: ExecuteMsg,
+    ) -> Result<Response, ContractError> {
+        let mut mut_deps = Box::new(deps);
+        match msg {
+            ExecuteMsg::Ownable(msg) => {
+                self.ownable
+                    .borrow_mut()
+                    .execute(&mut mut_deps, env, info, msg)
+                    .map_err(|err| ContractError::OwnableError(err))?;
+            }
+            ExecuteMsg::Metadata(msg) => {
+                self.metadata
+                    .execute(&mut mut_deps, env, info, msg)
+                    .map_err(|err| ContractError::MetadataError(err))?;
+            }
+            ExecuteMsg::SeatToken(msg) => {
+                self.seat_token
+                    .borrow_mut()
+                    .execute(&mut mut_deps, env, info, msg)
+                    .map_err(|err| ContractError::SeatTokenError(err))?;
+            }
+            ExecuteMsg::Redeemable(msg) => {
+                self.redeemable
+                    .execute(&mut mut_deps, env, info, msg)
+                    .map_err(|err| ContractError::RedeemableError(err))?;
+            }
+            ExecuteMsg::Sellable(msg) => {
+                self.sellable_token
+                    .execute(&mut mut_deps, env, info, msg)
+                    .map_err(|err| ContractError::SellableError(err))?;
+            }
+        }
+        Ok(Response::default())
+    }
+
+    pub fn query(&self, deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+        match msg {
+            QueryMsg::Ownable(msg) => {
+                to_binary(&self.ownable.borrow().query(&deps, env, msg).unwrap())
+            }
+
+            QueryMsg::Metadata(msg) => to_binary(&self.metadata.query(&deps, env, msg).unwrap()),
+            QueryMsg::SeatToken(msg) => {
+                to_binary(&self.seat_token.borrow_mut().query(&deps, env, msg).unwrap())
+            }
+            QueryMsg::Redeemable(msg) => {
+                to_binary(&self.redeemable.query(&deps, env, msg).unwrap())
+            }
+            QueryMsg::Sellable(msg) => {
+                to_binary(&self.sellable_token.query(&deps, env, msg).unwrap())
+            }
+        }
     }
 }
 pub const CONFIG: Item<Config> = Item::new("config");
