@@ -5,9 +5,8 @@ use cw2::set_contract_version;
 use semver::Version;
 
 use crate::error::ContractError;
-use crate::manager::contract_manager::get_manager;
-use crate::msg::{ExecuteMsg, MigrateMsg};
-use crate::state::Config;
+use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
+use crate::state::{Config, HubModules};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:hub";
@@ -18,12 +17,12 @@ pub fn instantiate(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: String,
-) -> Result<Response<Binary>, String> {
+    msg: InstantiateMsg,
+) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     // instantiate all modules
-    let mut manager = get_manager();
-    manager.instantiate(deps, env, info, msg.as_str())
+    let mut modules = HubModules::default();
+    modules.instantiate(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -33,13 +32,13 @@ pub fn execute(
     _info: MessageInfo,
     _msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    unimplemented!()
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: String) -> StdResult<Binary> {
-    let mut manager = get_manager();
-    manager.query(&deps.clone(), env, msg.as_str())
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    let modules = HubModules::default();
+    modules.query(deps, env, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -80,30 +79,41 @@ mod tests {
     };
     use metadata::QueryResp as MetadataQueryResp;
     use ownable::QueryResp as OwnableQueryResp;
-    use serde_json::json;
+    use serde_json::{from_str, json};
 
     const CREATOR: &str = "CREATOR";
     // make sure ownable module is instantiated
     #[test]
     fn test_ownable_module() {
         let mut deps = mock_dependencies();
+        let metadata_msg = HubMetadata {
+            name: "Kenny's contract".to_string(),
+            hub_url: "find me here".to_string(),
+            description: "Awesome Hub".to_string(),
+            tags: vec!["awesome".to_string(), "wild".to_string()],
+            social_links: vec![SocialLinks {
+                name: "discord".to_string(),
+                url: "discord link here".to_string(),
+            }],
+            creator: CREATOR.to_string(),
+            image_url: "image link here".to_string(),
+        };
         //no owner specified in the instantiation message
-        let msg = json!({
+        let mut msg = json!({
+            "metadata": {"metadata": metadata_msg},
             "ownable": {"owner": CREATOR}
         })
         .to_string();
+        let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
         let env = mock_env();
         let info = mock_info(CREATOR, &[]);
 
-        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
-        let res = query(
-            deps.as_ref(),
-            env.clone(),
-            json!({"ownable": {"is_owner": CREATOR}}).to_string(),
-        )
-        .unwrap();
+        msg = json!({"ownable": {"is_owner": CREATOR}}).to_string();
+        let query_msg: QueryMsg = from_str(&msg).unwrap();
+        let res = query(deps.as_ref(), env.clone(), query_msg).unwrap();
         let owner: OwnableQueryResp = from_binary(&res).unwrap();
         match owner {
             OwnableQueryResp::IsOwner(owner) => {
@@ -127,24 +137,26 @@ mod tests {
             creator: CREATOR.to_string(),
             image_url: "image link here".to_string(),
         };
-        let msg = json!({
+        let mut msg = json!({
+            "ownable": {
+                "owner": CREATOR
+            },
             "metadata": {
                 "metadata": metadata_msg
             }
         })
         .to_string();
+        let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
+
         let env = mock_env();
         let info = mock_info(CREATOR, &[]);
 
-        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
-        let res = query(
-            deps.as_ref(),
-            env.clone(),
-            json!({"metadata": {"get_metadata": {}}}).to_string(),
-        )
-        .unwrap();
+        msg = json!({"metadata": {"get_metadata": {}}}).to_string();
+        let query_msg: QueryMsg = from_str(&msg).unwrap();
+        let res = query(deps.as_ref(), env.clone(), query_msg).unwrap();
         let metadata: MetadataQueryResp<HubMetadata> = from_binary(&res).unwrap();
         match metadata {
             MetadataQueryResp::Metadata(meta) => {

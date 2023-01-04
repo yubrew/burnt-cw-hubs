@@ -6,8 +6,8 @@ use cw2::set_contract_version;
 use semver::Version;
 
 use crate::error::ContractError;
-use crate::manager::contract_manager::get_manager;
-use crate::state::Config;
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::state::{Config, SeatModules};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:seat";
@@ -23,30 +23,29 @@ pub fn instantiate(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: String,
-) -> Result<Response<Binary>, String> {
+    msg: InstantiateMsg,
+) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     // instantiate all modules
-    let mut manager = get_manager();
-    manager.instantiate(deps, env, info, msg.as_str())
+    let mut modules = SeatModules::default();
+    modules.instantiate(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: &mut DepsMut,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: String,
-) -> Result<Response, String> {
-    let mut manager = get_manager();
-    manager.execute(deps, env, info, msg.as_str())?;
-    Ok(Response::default())
+    msg: ExecuteMsg,
+) -> Result<Response, ContractError> {
+    let mut modules = SeatModules::default();
+    modules.execute(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: String) -> StdResult<Binary> {
-    let mut manager = get_manager();
-    manager.query(&deps.clone(), env, msg.as_str())
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    let modules = SeatModules::default();
+    modules.query(deps, env, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -78,7 +77,10 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
 
 #[cfg(test)]
 mod tests {
-    use crate::state::{SeatMetadata, TokenMetadata};
+    use crate::{
+        msg::ExecuteMsg,
+        state::{SeatMetadata, TokenMetadata},
+    };
 
     use super::*;
     use cosmwasm_std::{
@@ -87,7 +89,7 @@ mod tests {
         Coin, Empty, Uint64,
     };
     use cw721::{Cw721QueryMsg, NumTokensResponse, TokensResponse};
-    use cw721_base::{ExecuteMsg, MintMsg, QueryMsg};
+    use cw721_base::{ExecuteMsg as Cw721BaseExecuteMsg, MintMsg, QueryMsg as Cw721BaseQueryMsg};
     use metadata::QueryResp as MetadataQueryResp;
     use redeemable::{
         ExecuteMsg as RedeemableExecuteMsg, QueryMsg as RedeemableQueryMsg,
@@ -98,7 +100,7 @@ mod tests {
         ExecuteMsg as SellableExecuteMsg, QueryMsg as SellableQueryMsg,
         QueryResp as SellableQueryResp,
     };
-    use serde_json::json;
+    use serde_json::{from_str, json};
     use token::QueryResp as TokenQueryResp;
 
     const CREATOR: &str = "cosmos188rjfzzrdxlus60zgnrvs4rg0l73hct3azv93z";
@@ -109,7 +111,7 @@ mod tests {
         let metadata_msg = SeatMetadata {
             name: "Kenny's contract".to_string(),
         };
-        let msg = json!({
+        let mut msg = json!({
             "seat_token": {
                 "name": "Kenny's Token Contract".to_string(),
                 "symbol": "KNY".to_string(),
@@ -117,22 +119,29 @@ mod tests {
             },
             "metadata": {
                 "metadata": metadata_msg
+            },
+            "ownable": {
+                "owner": CREATOR
+            },
+            "redeemable": {
+                "locked_items": Set::<String>::new()
+            },
+            "sellable": {
+                "tokens": Map::<&str, Uint64>::new()
             }
         })
         .to_string();
+        let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
         let env = mock_env();
         let info = mock_info(CREATOR, &[]);
 
-        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
         // make sure seat contract metadata was created
-        let res = query(
-            deps.as_ref(),
-            env.clone(),
-            json!({"metadata": {"get_metadata": {}}}).to_string(),
-        )
-        .unwrap();
+        msg = json!({"metadata": {"get_metadata": {}}}).to_string();
+        let query_msg: QueryMsg = from_str(&msg).unwrap();
+        let res = query(deps.as_ref(), env.clone(), query_msg).unwrap();
         let metadata: MetadataQueryResp<SeatMetadata> = from_binary(&res).unwrap();
         match metadata {
             MetadataQueryResp::Metadata(meta) => {
@@ -140,11 +149,11 @@ mod tests {
             }
         }
 
-        let query_msg = QueryMsg::<Cw721QueryMsg>::NumTokens {};
+        let query_msg = Cw721BaseQueryMsg::<Cw721QueryMsg>::NumTokens {};
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({ "seat_token": query_msg }).to_string(),
+            from_str(&json!({ "seat_token": query_msg }).to_string()).unwrap(),
         )
         .unwrap();
         let result: TokenQueryResp = from_binary(&res).unwrap();
@@ -159,25 +168,40 @@ mod tests {
     #[test]
     fn test_seat_module_tokens() {
         let mut deps = mock_dependencies();
+
+        let metadata_msg = SeatMetadata {
+            name: "Kenny's contract".to_string(),
+        };
         let msg = json!({
             "seat_token": {
-                "name": "Kenny's contract".to_string(),
+                "name": "Kenny's Token Contract".to_string(),
                 "symbol": "KNY".to_string(),
                 "minter": CREATOR.to_string(),
             },
-            "ownable": {"owner": CREATOR},
-            "redeemable": {"locked_items": Set::<String>::new()},
+            "metadata": {
+                "metadata": metadata_msg
+            },
+            "ownable": {
+                "owner": CREATOR
+            },
+            "redeemable": {
+                "locked_items": Set::<String>::new()
+            },
+            "sellable": {
+                "tokens": {}
+            }
         })
         .to_string();
         let env = mock_env();
         let info = mock_info(CREATOR, &[]);
+        let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
 
-        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
         // mint a token
         for token_id in vec!["1", "2"] {
-            let msg = ExecuteMsg::<TokenMetadata, Empty>::Mint(MintMsg {
+            let msg = Cw721BaseExecuteMsg::<TokenMetadata, Empty>::Mint(MintMsg {
                 token_id: token_id.to_string(),
                 owner: CREATOR.to_string(),
                 token_uri: Some("https://example.com".to_string()),
@@ -190,14 +214,20 @@ mod tests {
             });
             let mint_msg = json!({ "seat_token": msg }).to_string();
 
-            execute(&mut deps.as_mut(), env.clone(), info.clone(), mint_msg).unwrap();
+            execute(
+                deps.as_mut(),
+                env.clone(),
+                info.clone(),
+                from_str(&mint_msg).unwrap(),
+            )
+            .unwrap();
         }
 
-        let query_msg = QueryMsg::<Cw721QueryMsg>::NumTokens {};
+        let query_msg = Cw721BaseQueryMsg::<Cw721QueryMsg>::NumTokens {};
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({ "seat_token": query_msg }).to_string(),
+            from_str(&json!({ "seat_token": query_msg }).to_string()).unwrap(),
         )
         .unwrap();
         let result: TokenQueryResp = from_binary(&res).unwrap();
@@ -216,7 +246,7 @@ mod tests {
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({ "sellable_token": query_msg }).to_string(),
+            from_str(&json!({ "sellable": query_msg }).to_string()).unwrap(),
         )
         .unwrap();
         let result: SellableQueryResp<TokenMetadata> = from_binary(&res).unwrap();
@@ -232,12 +262,18 @@ mod tests {
                 ("2".to_string(), Uint64::new(100)),
             ]),
         };
-        let list_msg = json!({ "sellable_token": msg }).to_string();
-        execute(&mut deps.as_mut(), env.clone(), info.clone(), list_msg).unwrap();
+        let list_msg = json!({ "sellable": msg }).to_string();
+        execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            from_str(&list_msg).unwrap(),
+        )
+        .unwrap();
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({ "sellable_token": query_msg }).to_string(),
+            from_str(&json!({ "sellable": query_msg }).to_string()).unwrap(),
         )
         .unwrap();
         let result: SellableQueryResp<TokenMetadata> = from_binary(&res).unwrap();
@@ -248,9 +284,15 @@ mod tests {
         }
         // buy a token
         let msg = SellableExecuteMsg::Buy {};
-        let buy_msg = json!({ "sellable_token": msg }).to_string();
+        let buy_msg = json!({ "sellable": msg }).to_string();
         let buyer_info = mock_info("buyer", &[Coin::new(200, "burnt")]);
-        execute(&mut deps.as_mut(), env.clone(), buyer_info, buy_msg).unwrap();
+        execute(
+            deps.as_mut(),
+            env.clone(),
+            buyer_info,
+            from_str(&buy_msg).unwrap(),
+        )
+        .unwrap();
         // Get all listed tokens
         let query_msg = SellableQueryMsg::ListedTokens {
             start_after: None,
@@ -259,7 +301,7 @@ mod tests {
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({ "sellable_token": query_msg }).to_string(),
+            from_str(&json!({ "sellable": query_msg }).to_string()).unwrap(),
         )
         .unwrap();
         let result: SellableQueryResp<TokenMetadata> = from_binary(&res).unwrap();
@@ -273,21 +315,15 @@ mod tests {
         }
         // Lock the token
         let msg = RedeemableExecuteMsg::RedeemItem("1".to_string());
-        let lock_msg = json!({ "redeemable": msg }).to_string();
+        let lock_msg: ExecuteMsg = from_str(&json!({ "redeemable": msg }).to_string()).unwrap();
 
-        execute(
-            &mut deps.as_mut(),
-            env.clone(),
-            info.clone(),
-            lock_msg.clone(),
-        )
-        .unwrap();
+        execute(deps.as_mut(), env.clone(), info.clone(), lock_msg).unwrap();
         // Confirm the token is locked
         let query_msg = RedeemableQueryMsg::IsRedeemed("1".to_string());
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({ "redeemable": query_msg }).to_string(),
+            from_str(&json!({ "redeemable": query_msg }).to_string()).unwrap(),
         );
         let result: RedeemableQueryResp = from_binary(&res.unwrap()).unwrap();
         match result {
@@ -297,9 +333,9 @@ mod tests {
         }
         // buy a token
         let msg = SellableExecuteMsg::Buy {};
-        let buy_msg = json!({ "sellable_token": msg }).to_string();
+        let buy_msg = from_str(&json!({ "sellable": msg }).to_string()).unwrap();
         let buyer_info = mock_info("buyer", &[Coin::new(10, "burnt")]);
-        let buy_response = execute(&mut deps.as_mut(), env.clone(), buyer_info, buy_msg);
+        let buy_response = execute(deps.as_mut(), env.clone(), buyer_info, buy_msg);
         match buy_response {
             Err(val) => {
                 print!("{:?}", val);
@@ -308,7 +344,7 @@ mod tests {
             _ => assert!(false),
         }
         // Get all buyer owned tokens
-        let query_msg = QueryMsg::<Cw721QueryMsg>::Tokens {
+        let query_msg = Cw721BaseQueryMsg::<Cw721QueryMsg>::Tokens {
             owner: "buyer".to_string(),
             start_after: None,
             limit: None,
@@ -316,7 +352,7 @@ mod tests {
         let res = query(
             deps.as_ref(),
             env.clone(),
-            json!({ "seat_token": query_msg }).to_string(),
+            from_str(&json!({ "seat_token": query_msg }).to_string()).unwrap(),
         );
         let result: TokenQueryResp = from_binary(&res.unwrap()).unwrap();
         match result {

@@ -1,13 +1,19 @@
-use cosmwasm_schema::{cw_serde, QueryResponses};
-use serde_json::Value;
+use cosmwasm_schema::cw_serde;
+use serde::{Deserialize, Serialize};
 
-#[cw_serde]
+use crate::state::HubMetadata;
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub struct InstantiateMsg {
-    pub modules: String,
+    pub ownable: ownable::InstantiateMsg,
+    pub metadata: metadata::InstantiateMsg<HubMetadata>,
 }
 
 #[cw_serde]
-pub enum ExecuteMsg {}
+pub enum ExecuteMsg {
+    Ownable(ownable::ExecuteMsg),
+}
 
 #[cw_serde]
 pub struct MigrateMsg {
@@ -15,8 +21,7 @@ pub struct MigrateMsg {
 }
 
 #[cw_serde]
-#[derive(QueryResponses)]
 pub enum QueryMsg {
-    #[returns(Value)]
-    Query(String),
+    Ownable(ownable::QueryMsg),
+    Metadata(metadata::QueryMsg),
 }
