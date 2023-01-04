@@ -25,7 +25,7 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     // instantiate all modules
     let mut modules = HubModules::default();
-    modules.instantiate_modules(deps, env, info, msg)
+    modules.instantiate(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -40,26 +40,8 @@ pub fn execute(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    match msg {
-        QueryMsg::Ownable(query_msg) => {
-            let modules = HubModules::default();
-
-            return modules
-                .ownable
-                .query(&deps, env, query_msg)
-                .map(|res| to_binary(&res))
-                .unwrap();
-        }
-        QueryMsg::Metadata(query_msg) => {
-            let modules = HubModules::default();
-
-            return modules
-                .metadata
-                .query(&deps, env, query_msg)
-                .map(|res| to_binary(&res))
-                .unwrap();
-        }
-    }
+    let modules = HubModules::default();
+    modules.query(deps, env, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

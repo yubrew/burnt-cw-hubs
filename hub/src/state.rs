@@ -1,12 +1,12 @@
 use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
-use cosmwasm_std::{Addr, DepsMut, Env, MessageInfo, Response};
+use cosmwasm_std::{Addr, DepsMut, Env, MessageInfo, Response, StdResult, Binary, Deps, to_binary};
 use cw_storage_plus::Item;
 use ownable::Ownable;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{msg::InstantiateMsg, ContractError};
+use crate::{msg::{InstantiateMsg, QueryMsg}, ContractError};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Config {
@@ -79,7 +79,7 @@ impl<'a> HubModules<'a, HubMetadata> {
             metadata: metadata_module,
         }
     }
-    pub fn instantiate_modules(
+    pub fn instantiate(
         &mut self,
         deps: DepsMut,
         env: Env,
@@ -97,6 +97,25 @@ impl<'a> HubModules<'a, HubMetadata> {
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
             .map_err(|err| ContractError::MetadataError(err))?;
         Ok(Response::default())
+    }
+
+    pub fn query(&self, deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+        match msg {
+            QueryMsg::Ownable(query_msg) => {    
+                return self
+                    .ownable
+                    .query(&deps, env, query_msg)
+                    .map(|res| to_binary(&res))
+                    .unwrap();
+            }
+            QueryMsg::Metadata(query_msg) => {
+                return self
+                    .metadata
+                    .query(&deps, env, query_msg)
+                    .map(|res| to_binary(&res))
+                    .unwrap();
+            }
+        }
     }
 }
 
