@@ -79,7 +79,7 @@ impl<'a> Default for SeatModules<'a, SeatMetadata, TokenMetadata> {
         // Burnt token module
         let seat_token = Tokens::<TokenMetadata, Empty, Empty, Empty>::new(
             cw721_base::Cw721Contract::default(),
-            Some("burnt".to_string()),
+            Some("uturnt".to_string()),
         );
         let borrowable_seat_token = Rc::new(RefCell::new(seat_token));
         // Redeemable token

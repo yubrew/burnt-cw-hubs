@@ -43,7 +43,7 @@ pub mod contract_manager {
         let seat_token = Rc::new(RefCell::new(
             Tokens::<TokenMetadata, Empty, Empty, Empty>::new(
                 cw721_base::Cw721Contract::default(),
-                Some("burnt".to_string()),
+                Some("uturnt".to_string()),
             ),
         ));
         contract_manager
