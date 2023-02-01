@@ -13,6 +13,7 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     Ownable(ownable::ExecuteMsg),
+    Hub(String)
 }
 
 #[cw_serde]

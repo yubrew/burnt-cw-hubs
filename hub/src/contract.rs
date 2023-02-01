@@ -5,7 +5,7 @@ use cw2::set_contract_version;
 use semver::Version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
+use crate::msg::{InstantiateMsg, MigrateMsg, QueryMsg, ExecuteMsg};
 use crate::state::{Config, HubModules};
 
 // version info for migration info
@@ -27,12 +27,13 @@ pub fn instantiate(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    _deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    _msg: ExecuteMsg,
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    Ok(Response::default())
+    let mut modules = HubModules::default();
+    modules.execute(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
