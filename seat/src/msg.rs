@@ -14,7 +14,6 @@ pub struct InstantiateMsg {
     // This is optional because of serde serialization error on maps
     pub sellable: Option<sellable::msg::InstantiateMsg>,
     pub sales: sales::msg::InstantiateMsg,
-    pub hub_contract: String,
 }
 
 #[derive(Serialize, Deserialize)]
