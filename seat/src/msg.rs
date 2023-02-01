@@ -13,6 +13,8 @@ pub struct InstantiateMsg {
     pub redeemable: redeemable::InstantiateMsg,
     // This is optional because of serde serialization error on maps
     pub sellable: Option<sellable::msg::InstantiateMsg>,
+    pub sales: sales::msg::InstantiateMsg,
+    pub hub_contract: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -23,6 +25,7 @@ pub enum ExecuteMsg {
     SeatToken(cw721_base::ExecuteMsg<TokenMetadata, Empty>),
     Redeemable(redeemable::ExecuteMsg),
     Sellable(sellable::msg::ExecuteMsg),
+    Sales(sales::msg::ExecuteMsg<TokenMetadata>),
 }
 
 #[cw_serde]
@@ -37,4 +40,5 @@ pub enum QueryMsg {
     SeatToken(cw721_base::QueryMsg<Empty>),
     Redeemable(redeemable::QueryMsg),
     Sellable(sellable::msg::QueryMsg),
+    Sales(sales::msg::QueryMsg),
 }

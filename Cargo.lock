@@ -571,7 +571,7 @@ checksum = "fc7fcc620a3bff7cdd7a365be3376c97191aeaccc2a603e600951e452615bf89"
 [[package]]
 name = "metadata"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#af8d666a2969c212d1144fc3e18abfcddf8439b8"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#b379b829a1c2fdedabf3768c7356dd06e0e5cf07"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -600,7 +600,7 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 [[package]]
 name = "ownable"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#af8d666a2969c212d1144fc3e18abfcddf8439b8"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#b379b829a1c2fdedabf3768c7356dd06e0e5cf07"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -682,7 +682,7 @@ dependencies = [
 [[package]]
 name = "redeemable"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#af8d666a2969c212d1144fc3e18abfcddf8439b8"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#b379b829a1c2fdedabf3768c7356dd06e0e5cf07"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -714,6 +714,26 @@ name = "ryu"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4501abdff3ae82a1c1b477a17252eb69cee9e66eb915c1abaa4f44d873df9f09"
+
+[[package]]
+name = "sales"
+version = "0.1.0"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#b379b829a1c2fdedabf3768c7356dd06e0e5cf07"
+dependencies = [
+ "burnt-glue",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.16.0",
+ "cw2 0.15.1",
+ "cw721-base",
+ "ownable",
+ "schemars",
+ "sellable",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "token",
+]
 
 [[package]]
 name = "schemars"
@@ -755,6 +775,7 @@ dependencies = [
  "metadata",
  "ownable",
  "redeemable",
+ "sales",
  "schemars",
  "sellable",
  "semver",
@@ -781,7 +802,7 @@ dependencies = [
 [[package]]
 name = "sellable"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#af8d666a2969c212d1144fc3e18abfcddf8439b8"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#b379b829a1c2fdedabf3768c7356dd06e0e5cf07"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -945,7 +966,7 @@ dependencies = [
 [[package]]
 name = "token"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#af8d666a2969c212d1144fc3e18abfcddf8439b8"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#b379b829a1c2fdedabf3768c7356dd06e0e5cf07"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",

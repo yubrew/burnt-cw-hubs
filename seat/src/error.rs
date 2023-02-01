@@ -9,19 +9,21 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
-    #[error("Ownable Module Error")]
+    #[error("Ownable Module")]
     OwnableError(ownable::OwnableError),
 
-    #[error("Metadata Module Error")]
+    #[error("Metadata Module")]
     MetadataError(metadata::MetadataError),
 
-    #[error("Token Module Error")]
+    #[error("Token Module")]
     SeatTokenError(cw721_base::ContractError),
 
-    #[error("Redeemable Module Error")]
+    #[error("Redeemable Module")]
     RedeemableError(redeemable::errors::ContractError),
 
-    #[error("Metadata Module Error")]
-    SellableError(sellable::errors::ContractError), // Add any other custom errors you like here.
-                                                    // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
+    #[error("Metadata Module")]
+    SellableError(sellable::errors::ContractError),
+
+    #[error("Sales Module")]
+    SalesError(sales::errors::ContractError),
 }
