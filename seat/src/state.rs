@@ -51,8 +51,6 @@ pub struct TokenMetadata {
     pub royalty_payment_address: Option<String>,
 }
 
-pub const HUB_CONTRACT: Item<Addr> = Item::new("hub_contract");
-
 pub struct SeatModules<'a, T, U>
 where
     T: Serialize + DeserializeOwned,
