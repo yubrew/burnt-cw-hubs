@@ -13,7 +13,7 @@ pub struct InstantiateMsg {
     pub redeemable: redeemable::InstantiateMsg,
     // This is optional because of serde serialization error on maps
     pub sellable: Option<sellable::msg::InstantiateMsg>,
-    pub hub_contract: String
+    pub hub_contract: String,
 }
 
 #[derive(Serialize, Deserialize)]
