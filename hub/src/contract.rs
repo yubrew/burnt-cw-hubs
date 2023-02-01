@@ -5,7 +5,7 @@ use cw2::set_contract_version;
 use semver::Version;
 
 use crate::error::ContractError;
-use crate::msg::{InstantiateMsg, MigrateMsg, QueryMsg, ExecuteMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{Config, HubModules};
 
 // version info for migration info

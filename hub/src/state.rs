@@ -7,7 +7,7 @@ use ownable::Ownable;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
-    msg::{InstantiateMsg, QueryMsg, ExecuteMsg},
+    msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
     ContractError,
 };
 
@@ -104,14 +104,20 @@ impl<'a> HubModules<'a, HubMetadata> {
         Ok(Response::default())
     }
 
-    pub fn execute(&mut self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: ExecuteMsg) -> Result<Response, ContractError> {
+    pub fn execute(
+        &mut self,
+        deps: DepsMut,
+        _env: Env,
+        _info: MessageInfo,
+        msg: ExecuteMsg,
+    ) -> Result<Response, ContractError> {
         match msg {
             ExecuteMsg::Ownable(_) => todo!(),
-            ExecuteMsg::Hub(msg) => {
+            ExecuteMsg::SetSeat(msg) => {
                 let seat_addr = deps.api.addr_validate(&msg)?;
                 SEAT_CONTRACT.save(deps.storage, &seat_addr)?;
-                return Ok(Response::default());
-            },
+                Ok(Response::default())
+            }
         }
     }
 
