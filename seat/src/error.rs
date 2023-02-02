@@ -10,20 +10,20 @@ pub enum ContractError {
     Unauthorized {},
 
     #[error("Ownable Module Error")]
-    OwnableError(ownable::OwnableError),
+    OwnableError(#[from] ownable::OwnableError),
 
     #[error("Metadata Module Error")]
-    MetadataError(metadata::MetadataError),
+    MetadataError(#[from] metadata::MetadataError),
 
     #[error("Token Module Error")]
-    SeatTokenError(cw721_base::ContractError),
+    SeatTokenError(#[from] cw721_base::ContractError),
 
     #[error("Redeemable Module Error")]
-    RedeemableError(redeemable::errors::ContractError),
+    RedeemableError(#[from] redeemable::errors::ContractError),
 
-    #[error("Metadata Module Error")]
-    SellableError(sellable::errors::ContractError),
+    #[error(transparent)] 
+    SellableError(#[from] sellable::errors::ContractError),
 
     #[error("Sales Module Error")]
-    SalesError(sales::errors::ContractError),
+    SalesError(#[from] sales::errors::ContractError),
 }
