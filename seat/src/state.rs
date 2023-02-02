@@ -2,7 +2,8 @@ use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult, Uint64,
+    to_binary, Addr, Binary, BondedDenomResponse, Deps, DepsMut, Empty, Env, MessageInfo,
+    QueryRequest, Response, StakingQuery, StdResult, Uint64,
 };
 use cw_storage_plus::{Item, Map};
 use ownable::Ownable;
@@ -60,13 +61,23 @@ where
     pub metadata: metadata::Metadata<'a, T>,
     pub seat_token: Rc<RefCell<Tokens<'a, U, Empty, Empty, Empty>>>,
     pub redeemable: redeemable::Redeemable<'a>,
-    pub sellable_token: sellable::Sellable<'a, U, Empty, Empty, Empty>,
+    pub sellable_token: Rc<RefCell<sellable::Sellable<'a, U, Empty, Empty, Empty>>>,
+    pub sales: sales::Sales<'a, U, Empty, Empty, Empty>,
 }
 
 pub const HUB_CONTRACT: Item<Addr> = Item::new("hub_contract");
 
-impl<'a> Default for SeatModules<'a, SeatMetadata, TokenMetadata> {
-    fn default() -> Self {
+impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
+    pub fn new(deps: Deps) -> Self {
+        // query for bond denom
+        let bond_denom_request = QueryRequest::Staking(StakingQuery::BondedDenom {});
+        // throw if this fails
+        let bond_denom_resp: BondedDenomResponse = deps
+            .querier
+            .query(&bond_denom_request)
+            .map_err(ContractError::from)
+            .unwrap();
+        let bond_denom = bond_denom_resp.denom;
         // instantiate all modules
 
         // ownable module
@@ -81,7 +92,7 @@ impl<'a> Default for SeatModules<'a, SeatMetadata, TokenMetadata> {
         // Burnt token module
         let seat_token = Tokens::<TokenMetadata, Empty, Empty, Empty>::new(
             cw721_base::Cw721Contract::default(),
-            Some("burnt".to_string()),
+            Some(bond_denom.to_string()),
         );
         let borrowable_seat_token = Rc::new(RefCell::new(seat_token));
         // Redeemable token
@@ -92,18 +103,23 @@ impl<'a> Default for SeatModules<'a, SeatMetadata, TokenMetadata> {
             borrowable_ownable.clone(),
             Map::new("listed_tokens"),
         );
+        let borrowable_sellable_token = Rc::new(RefCell::new(sellable_token));
+        // sales module
+        let sales = sales::Sales::new(
+            borrowable_sellable_token.clone(),
+            Item::new("primary_sales"),
+        );
 
         SeatModules {
             ownable: borrowable_ownable,
             metadata,
             seat_token: borrowable_seat_token,
             redeemable,
-            sellable_token,
+            sellable_token: borrowable_sellable_token,
+            sales,
         }
     }
-}
 
-impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
     pub fn instantiate(
         &mut self,
         deps: DepsMut,
@@ -135,13 +151,19 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.redeemable)
             .map_err(|err| ContractError::RedeemableError(err))?;
 
+        self.sales
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.sales)
+            .map_err(|err| ContractError::SalesError(err))?;
+
         // Sellable token
         if let Some(sellable_items) = msg.sellable {
             self.sellable_token
+                .borrow_mut()
                 .instantiate(&mut mut_deps.branch(), &env, &info, sellable_items)
                 .map_err(|err| ContractError::SellableError(err))?;
         } else {
             self.sellable_token
+                .borrow_mut()
                 .instantiate(
                     &mut mut_deps.branch(),
                     &env,
@@ -189,8 +211,15 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
             }
             ExecuteMsg::Sellable(msg) => {
                 self.sellable_token
+                    .borrow_mut()
                     .execute(&mut mut_deps, env, info, msg)
                     .map_err(|err| ContractError::SellableError(err))?;
+            }
+
+            ExecuteMsg::Sales(msg) => {
+                self.sales
+                    .execute(&mut mut_deps, env, info, msg)
+                    .map_err(|err| ContractError::SalesError(err))?;
             }
         }
         Ok(Response::default())
@@ -209,9 +238,14 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
             QueryMsg::Redeemable(msg) => {
                 to_binary(&self.redeemable.query(&deps, env, msg).unwrap())
             }
-            QueryMsg::Sellable(msg) => {
-                to_binary(&self.sellable_token.query(&deps, env, msg).unwrap())
-            }
+            QueryMsg::Sellable(msg) => to_binary(
+                &self
+                    .sellable_token
+                    .borrow_mut()
+                    .query(&deps, env, msg)
+                    .unwrap(),
+            ),
+            QueryMsg::Sales(msg) => to_binary(&self.sales.query(&deps, env, msg).unwrap()),
         }
     }
 }

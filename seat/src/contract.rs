@@ -26,11 +26,11 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
-    // instantiate all modules
+
     let hub_contract = deps.api.addr_validate(&msg.hub_contract)?;
     HUB_CONTRACT.save(deps.storage, &hub_contract)?;
     // instantiate all modules
-    let mut modules = SeatModules::default();
+    let mut modules = SeatModules::new(deps.as_ref());
     modules.instantiate(deps, env, info, msg)
 }
 
@@ -41,13 +41,13 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    let mut modules = SeatModules::default();
+    let mut modules = SeatModules::new(deps.as_ref());
     modules.execute(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    let modules = SeatModules::default();
+    let modules = SeatModules::new(deps);
     modules.query(deps, env, msg)
 }
 
@@ -80,6 +80,8 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
 
 #[cfg(test)]
 mod tests {
+    use std::{cell::RefCell, rc::Rc};
+
     use crate::{
         msg::ExecuteMsg,
         state::{SeatMetadata, TokenMetadata},
@@ -89,7 +91,7 @@ mod tests {
     use cosmwasm_std::{
         from_binary,
         testing::{mock_dependencies, mock_env, mock_info},
-        Coin, Empty, Uint64,
+        Coin, Empty, Timestamp, Uint64,
     };
     use cw721::{Cw721QueryMsg, NumTokensResponse, TokensResponse};
     use cw721_base::{ExecuteMsg as Cw721BaseExecuteMsg, MintMsg, QueryMsg as Cw721BaseQueryMsg};
@@ -107,10 +109,12 @@ mod tests {
     use token::QueryResp as TokenQueryResp;
 
     const CREATOR: &str = "cosmos188rjfzzrdxlus60zgnrvs4rg0l73hct3azv93z";
+    const USER: &str = "burnt188rjfzzrdxlus60zgnrvs4rg0l73hct3mlvdpe";
 
     #[test]
     fn test_seat_module_instantiation() {
         let mut deps = mock_dependencies();
+        deps.querier.update_staking("ustake", &[], &[]);
         let metadata_msg = SeatMetadata {
             name: "Kenny's contract".to_string(),
         };
@@ -131,7 +135,9 @@ mod tests {
             },
             "sellable": {
                 "tokens": Map::<&str, Uint64>::new()
-            }
+            },
+            "sales": {},
+            "hub_contract": "cosmos188rjfzzrdxlus60zgnrvs4rg0l73hct3azv93z"
         })
         .to_string();
         let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
@@ -171,6 +177,7 @@ mod tests {
     #[test]
     fn test_seat_module_tokens() {
         let mut deps = mock_dependencies();
+        deps.querier.update_staking("ustake", &[], &[]);
 
         let metadata_msg = SeatMetadata {
             name: "Kenny's contract".to_string(),
@@ -192,7 +199,9 @@ mod tests {
             },
             "sellable": {
                 "tokens": {}
-            }
+            },
+            "sales": {},
+            "hub_contract": "cosmos188rjfzzrdxlus60zgnrvs4rg0l73hct3azv93z"
         })
         .to_string();
         let env = mock_env();
@@ -288,7 +297,7 @@ mod tests {
         // buy a token
         let msg = SellableExecuteMsg::Buy {};
         let buy_msg = json!({ "sellable": msg }).to_string();
-        let buyer_info = mock_info("buyer", &[Coin::new(200, "burnt")]);
+        let buyer_info = mock_info("buyer", &[Coin::new(200, "ustake")]);
         execute(
             deps.as_mut(),
             env.clone(),
@@ -337,7 +346,7 @@ mod tests {
         // buy a token
         let msg = SellableExecuteMsg::Buy {};
         let buy_msg = from_str(&json!({ "sellable": msg }).to_string()).unwrap();
-        let buyer_info = mock_info("buyer", &[Coin::new(10, "burnt")]);
+        let buyer_info = mock_info("buyer", &[Coin::new(10, "ustake")]);
         let buy_response = execute(deps.as_mut(), env.clone(), buyer_info, buy_msg);
         match buy_response {
             Err(val) => {
@@ -364,6 +373,189 @@ mod tests {
                 assert_eq!(tokens.tokens.len(), 1);
                 assert_eq!(tokens.tokens[0], "2");
             }
+        }
+    }
+
+    #[test]
+    fn add_primary_sales() {
+        use sales::msg::QueryResp;
+
+        let mut deps = mock_dependencies();
+        deps.querier.update_staking("ustake", &[], &[]);
+
+        let metadata_msg = SeatMetadata {
+            name: "Kenny's contract".to_string(),
+        };
+        let msg = json!({
+            "seat_token": {
+                "name": "Kenny's Token Contract".to_string(),
+                "symbol": "KNY".to_string(),
+                "minter": CREATOR.to_string(),
+            },
+            "metadata": {
+                "metadata": metadata_msg
+            },
+            "ownable": {
+                "owner": CREATOR
+            },
+            "redeemable": {
+                "locked_items": Set::<String>::new()
+            },
+            "sellable": {
+                "tokens": {}
+            },
+            "sales": {},
+            "hub_contract": "cosmos188rjfzzrdxlus60zgnrvs4rg0l73hct3azv93z"
+        })
+        .to_string();
+        let mut env = mock_env();
+        let info = mock_info(CREATOR, &[]);
+        let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
+
+        instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg)
+            .expect("seat modules instantiated");
+
+        // get all primary sales
+        let query_msg = Rc::new(RefCell::new(QueryMsg::Sales(
+            sales::msg::QueryMsg::PrimarySales {},
+        )));
+        let query_res = query(deps.as_ref(), env.clone(), query_msg.borrow().clone()).unwrap();
+        let primary_sales: QueryResp = from_binary(&query_res).unwrap();
+
+        match primary_sales {
+            QueryResp::PrimarySales(primary_sales) => {
+                assert_eq!(primary_sales.len(), 0)
+            }
+            _ => assert!(false),
+        }
+
+        // create a primary sale
+        let json_exec_msg = json!({
+            "sales": {
+                "primary_sale": {
+                    "total_supply": "1",
+                    "start_time": "1674567586",
+                    "end_time": "1675567587",
+                    "price": [{
+                        "denom": "USDC",
+                        "amount": "10"
+                    }]
+                }
+            }
+        })
+        .to_string();
+
+        let execute_msg_1: ExecuteMsg = from_str(&json_exec_msg).unwrap();
+        let execute_msg_2: ExecuteMsg = from_str(&json_exec_msg).unwrap();
+        // test creating multiple active primary sales
+        let fake_info = mock_info("hacker", &[]);
+        execute(deps.as_mut(), env.clone(), fake_info.clone(), execute_msg_1)
+            .expect_err("primary sales should not be added");
+        // set block time
+        execute(deps.as_mut(), env.clone(), info.clone(), execute_msg_2)
+            .expect("primary sales added");
+        let primary_sales_query =
+            query(deps.as_ref(), env.clone(), query_msg.borrow().clone()).unwrap();
+        let primary_sales: QueryResp = from_binary(&primary_sales_query).unwrap();
+
+        let active_primary_sale_query = query(
+            deps.as_ref(),
+            env.clone(),
+            QueryMsg::Sales(sales::msg::QueryMsg::ActivePrimarySale {}),
+        )
+        .unwrap();
+        let active_primary_sale: QueryResp = from_binary(&active_primary_sale_query).unwrap();
+
+        match primary_sales {
+            QueryResp::PrimarySales(primary_sales) => {
+                assert_eq!(primary_sales.len(), 1)
+            }
+            _ => assert!(false),
+        }
+        match active_primary_sale {
+            QueryResp::ActivePrimarySale(Some(sale)) => {
+                assert_eq!(sale.start_time.seconds().to_string(), "1674567586")
+            }
+            _ => assert!(false),
+        }
+
+        // buy an item
+        let json_exec_msg = json!({
+            "sales": {
+                "buy_item": {
+                        "token_id": "1",
+                        "owner": CREATOR,
+                        "token_uri": "url",
+                        "extension": {}
+                    }
+            }
+        })
+        .to_string();
+        let buyer_info = Rc::new(RefCell::new(mock_info(USER, &[Coin::new(20, "USDC")])));
+        let execute_msg: ExecuteMsg = from_str(&json_exec_msg).unwrap();
+        execute(
+            deps.as_mut(),
+            env.clone(),
+            buyer_info.borrow_mut().clone(),
+            execute_msg,
+        )
+        .expect("item bought");
+
+        let active_primary_sale_query = query(
+            deps.as_ref(),
+            env.clone(),
+            QueryMsg::Sales(sales::msg::QueryMsg::ActivePrimarySale {}),
+        )
+        .unwrap();
+        let active_primary_sale: QueryResp = from_binary(&active_primary_sale_query).unwrap();
+
+        match active_primary_sale {
+            QueryResp::ActivePrimarySale(Some(sale)) => assert_eq!(sale.disabled, true),
+            _ => assert!(false),
+        }
+
+        // create a new primary sale
+        let json_exec_msg = json!({
+            "sales": {
+                "primary_sale": {
+                    "total_supply": "1",
+                    "start_time": "1676567587",
+                    "end_time": "1677567587",
+                    "price": [{
+                        "denom": "USDC",
+                        "amount": "10"
+                    }]
+                }
+            }
+        })
+        .to_string();
+        env.block.time = Timestamp::from_seconds(1676567587);
+        let execute_msg: ExecuteMsg = from_str(&json_exec_msg).unwrap();
+        execute(deps.as_mut(), env.clone(), info.clone(), execute_msg)
+            .expect("primary sales added");
+
+        // halt ongoing primary sale
+        let json_exec_msg = json!({
+            "sales": {
+                "halt_sale": { }
+            }
+        })
+        .to_string();
+        let execute_msg: ExecuteMsg = from_str(&json_exec_msg).unwrap();
+        execute(deps.as_mut(), env.clone(), info.clone(), execute_msg)
+            .expect("any ongoing sale halted");
+
+        let active_primary_sale_query = query(
+            deps.as_ref(),
+            env.clone(),
+            QueryMsg::Sales(sales::msg::QueryMsg::ActivePrimarySale {}),
+        )
+        .unwrap();
+        let active_primary_sale: QueryResp = from_binary(&active_primary_sale_query).unwrap();
+
+        match active_primary_sale {
+            QueryResp::ActivePrimarySale(Some(sale)) => assert_eq!(sale.disabled, true),
+            _ => assert!(false),
         }
     }
 }

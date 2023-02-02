@@ -1,6 +1,6 @@
 [package]
 name = "seat"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["peartes <kenny.fale.kf@gmail.com>"]
 edition = "2021"
 
@@ -56,6 +56,7 @@ metadata = { workspace = true }
 token = { workspace = true }
 sellable = { workspace = true }
 redeemable = { workspace = true }
+sales = { workspace = true }
 cw721 = { workspace = true }
 cw721-base = { workspace = true, features = ["library"] }
 
