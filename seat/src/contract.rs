@@ -30,7 +30,7 @@ pub fn instantiate(
     let hub_contract = deps.api.addr_validate(&msg.hub_contract)?;
     HUB_CONTRACT.save(deps.storage, &hub_contract)?;
     // instantiate all modules
-    let mut modules = SeatModules::default();
+    let mut modules = SeatModules::new(deps.as_ref());
     modules.instantiate(deps, env, info, msg)
 }
 
@@ -41,13 +41,13 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    let mut modules = SeatModules::default();
+    let mut modules = SeatModules::new(deps.as_ref());
     modules.execute(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    let modules = SeatModules::default();
+    let modules = SeatModules::new(deps);
     modules.query(deps, env, msg)
 }
 
@@ -114,6 +114,7 @@ mod tests {
     #[test]
     fn test_seat_module_instantiation() {
         let mut deps = mock_dependencies();
+        deps.querier.update_staking("ustake", &[], &[]);
         let metadata_msg = SeatMetadata {
             name: "Kenny's contract".to_string(),
         };
@@ -176,6 +177,7 @@ mod tests {
     #[test]
     fn test_seat_module_tokens() {
         let mut deps = mock_dependencies();
+        deps.querier.update_staking("ustake", &[], &[]);
 
         let metadata_msg = SeatMetadata {
             name: "Kenny's contract".to_string(),
@@ -295,7 +297,7 @@ mod tests {
         // buy a token
         let msg = SellableExecuteMsg::Buy {};
         let buy_msg = json!({ "sellable": msg }).to_string();
-        let buyer_info = mock_info("buyer", &[Coin::new(200, "uturnt")]);
+        let buyer_info = mock_info("buyer", &[Coin::new(200, "ustake")]);
         execute(
             deps.as_mut(),
             env.clone(),
@@ -344,7 +346,7 @@ mod tests {
         // buy a token
         let msg = SellableExecuteMsg::Buy {};
         let buy_msg = from_str(&json!({ "sellable": msg }).to_string()).unwrap();
-        let buyer_info = mock_info("buyer", &[Coin::new(10, "burnt")]);
+        let buyer_info = mock_info("buyer", &[Coin::new(10, "ustake")]);
         let buy_response = execute(deps.as_mut(), env.clone(), buyer_info, buy_msg);
         match buy_response {
             Err(val) => {
@@ -379,6 +381,7 @@ mod tests {
         use sales::msg::QueryResp;
 
         let mut deps = mock_dependencies();
+        deps.querier.update_staking("ustake", &[], &[]);
 
         let metadata_msg = SeatMetadata {
             name: "Kenny's contract".to_string(),

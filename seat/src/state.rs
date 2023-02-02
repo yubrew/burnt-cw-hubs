@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult, Uint64,
+    to_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult, Uint64, QueryRequest, StakingQuery, BondedDenomResponse,
 };
 use cw_storage_plus::{Item, Map};
 use ownable::Ownable;
@@ -66,8 +66,13 @@ where
 
 pub const HUB_CONTRACT: Item<Addr> = Item::new("hub_contract");
 
-impl<'a> Default for SeatModules<'a, SeatMetadata, TokenMetadata> {
-    fn default() -> Self {
+impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
+    pub fn new(deps: Deps) -> Self {
+        // query for bond denom
+        let bond_denom_request = QueryRequest::Staking(StakingQuery::BondedDenom {});
+        // throw if this fails
+        let bond_denom_resp: BondedDenomResponse = deps.querier.query(&bond_denom_request).map_err(ContractError::from).unwrap();
+        let bond_denom = bond_denom_resp.denom;
         // instantiate all modules
 
         // ownable module
@@ -82,7 +87,7 @@ impl<'a> Default for SeatModules<'a, SeatMetadata, TokenMetadata> {
         // Burnt token module
         let seat_token = Tokens::<TokenMetadata, Empty, Empty, Empty>::new(
             cw721_base::Cw721Contract::default(),
-            Some("uturnt".to_string()),
+            Some(bond_denom.to_string()),
         );
         let borrowable_seat_token = Rc::new(RefCell::new(seat_token));
         // Redeemable token
@@ -109,9 +114,7 @@ impl<'a> Default for SeatModules<'a, SeatMetadata, TokenMetadata> {
             sales,
         }
     }
-}
 
-impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
     pub fn instantiate(
         &mut self,
         deps: DepsMut,
