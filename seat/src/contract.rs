@@ -7,7 +7,7 @@ use semver::Version;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{Config, SeatModules};
+use crate::state::{Config, SeatModules, HUB_CONTRACT};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:seat";
@@ -27,6 +27,9 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
 
+    let hub_contract = deps.api.addr_validate(&msg.hub_contract)?;
+    HUB_CONTRACT.save(deps.storage, &hub_contract)?;
+    // instantiate all modules
     let mut modules = SeatModules::default();
     modules.instantiate(deps, env, info, msg)
 }

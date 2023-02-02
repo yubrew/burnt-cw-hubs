@@ -64,6 +64,8 @@ where
     pub sales: sales::Sales<'a, U, Empty, Empty, Empty>,
 }
 
+pub const HUB_CONTRACT: Item<Addr> = Item::new("hub_contract");
+
 impl<'a> Default for SeatModules<'a, SeatMetadata, TokenMetadata> {
     fn default() -> Self {
         // instantiate all modules
