@@ -21,7 +21,7 @@ pub enum ContractError {
     #[error("Redeemable Module Error")]
     RedeemableError(#[from] redeemable::errors::ContractError),
 
-    #[error(transparent)] 
+    #[error(transparent)]
     SellableError(#[from] sellable::errors::ContractError),
 
     #[error("Sales Module Error")]

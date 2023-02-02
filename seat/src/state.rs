@@ -2,7 +2,8 @@ use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult, Uint64, QueryRequest, StakingQuery, BondedDenomResponse,
+    to_binary, Addr, Binary, BondedDenomResponse, Deps, DepsMut, Empty, Env, MessageInfo,
+    QueryRequest, Response, StakingQuery, StdResult, Uint64,
 };
 use cw_storage_plus::{Item, Map};
 use ownable::Ownable;
@@ -71,7 +72,11 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         // query for bond denom
         let bond_denom_request = QueryRequest::Staking(StakingQuery::BondedDenom {});
         // throw if this fails
-        let bond_denom_resp: BondedDenomResponse = deps.querier.query(&bond_denom_request).map_err(ContractError::from).unwrap();
+        let bond_denom_resp: BondedDenomResponse = deps
+            .querier
+            .query(&bond_denom_request)
+            .map_err(ContractError::from)
+            .unwrap();
         let bond_denom = bond_denom_resp.denom;
         // instantiate all modules
 
