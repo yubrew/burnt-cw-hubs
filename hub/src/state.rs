@@ -44,7 +44,8 @@ pub struct HubMetadata {
     pub tags: Vec<String>,
     pub social_links: Vec<SocialLinks>,
     pub creator: String,
-    pub image_url: String,
+    pub thumbnail_image_url: String,
+    pub banner_image_url: String,
 }
 
 pub struct HubModules<'a, T>
