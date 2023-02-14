@@ -97,7 +97,8 @@ mod tests {
                 url: "discord link here".to_string(),
             }],
             creator: CREATOR.to_string(),
-            image_url: "image link here".to_string(),
+            thumbnail_image_url: "image link here".to_string(),
+            banner_image_url: "image link here".to_string(),
         };
         //no owner specified in the instantiation message
         let mut msg = json!({
@@ -136,7 +137,8 @@ mod tests {
                 url: "discord link here".to_string(),
             }],
             creator: CREATOR.to_string(),
-            image_url: "image link here".to_string(),
+            thumbnail_image_url: "image link here".to_string(),
+            banner_image_url: "image link here".to_string(),
         };
         let mut msg = json!({
             "ownable": {
