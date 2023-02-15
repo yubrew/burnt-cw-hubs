@@ -37,6 +37,23 @@ pub struct ContractVersion {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct SeatMetadata {
     pub name: String,
+    pub image_uri: String,
+    pub description: String,
+    pub benefits: Vec<SeatBenefits>,
+    pub template_number: u8,
+    pub image_settings: ImageSettings
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+pub struct SeatBenefits {
+    pub name: String,
+    pub status: String
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+pub struct ImageSettings {
+    pub seat_name: bool,
+    pub hub_name: bool
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]

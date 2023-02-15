@@ -84,7 +84,7 @@ mod tests {
 
     use crate::{
         msg::ExecuteMsg,
-        state::{SeatMetadata, TokenMetadata},
+        state::{SeatMetadata, TokenMetadata, SeatBenefits, ImageSettings},
     };
 
     use super::*;
@@ -117,6 +117,17 @@ mod tests {
         deps.querier.update_staking("ustake", &[], &[]);
         let metadata_msg = SeatMetadata {
             name: "Kenny's contract".to_string(),
+            image_uri: "image".to_owned(),
+            description: "description".to_string(),
+            benefits: vec![SeatBenefits {
+                name: "name".to_string(),
+                status: "status".to_string(),
+            }],
+            template_number: 1,
+            image_settings: ImageSettings {
+                seat_name: true,
+                hub_name: true,
+            },
         };
         let mut msg = json!({
             "seat_token": {
@@ -181,6 +192,17 @@ mod tests {
 
         let metadata_msg = SeatMetadata {
             name: "Kenny's contract".to_string(),
+            image_uri: "image".to_owned(),
+            description: "description".to_string(),
+            benefits: vec![SeatBenefits {
+                name: "name".to_string(),
+                status: "status".to_string(),
+            }],
+            template_number: 1,
+            image_settings: ImageSettings {
+                seat_name: true,
+                hub_name: true,
+            },
         };
         let msg = json!({
             "seat_token": {
@@ -385,6 +407,17 @@ mod tests {
 
         let metadata_msg = SeatMetadata {
             name: "Kenny's contract".to_string(),
+            image_uri: "image".to_owned(),
+            description: "description".to_string(),
+            benefits: vec![SeatBenefits {
+                name: "name".to_string(),
+                status: "status".to_string(),
+            }],
+            template_number: 1,
+            image_settings: ImageSettings {
+                seat_name: true,
+                hub_name: true,
+            },
         };
         let msg = json!({
             "seat_token": {
