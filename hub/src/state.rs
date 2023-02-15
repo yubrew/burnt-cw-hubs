@@ -108,15 +108,21 @@ impl<'a> HubModules<'a, HubMetadata> {
     pub fn execute(
         &mut self,
         deps: DepsMut,
-        _env: Env,
-        _info: MessageInfo,
+        env: Env,
+        info: MessageInfo,
         msg: ExecuteMsg,
     ) -> Result<Response, ContractError> {
+        let mut mut_deps = Box::new(deps);
         match msg {
-            ExecuteMsg::Ownable(_) => todo!(),
+            ExecuteMsg::Ownable(msg) => {
+                self.ownable
+                    .execute(&mut mut_deps, env, info, msg)
+                    .map_err(|err| ContractError::OwnableError(err))
+                    .map(|_| Response::default())
+            },
             ExecuteMsg::SetSeat(msg) => {
-                let seat_addr = deps.api.addr_validate(&msg)?;
-                SEAT_CONTRACT.save(deps.storage, &seat_addr)?;
+                let seat_addr = mut_deps.api.addr_validate(&msg)?;
+                SEAT_CONTRACT.save(mut_deps.storage, &seat_addr)?;
                 Ok(Response::default())
             }
         }
