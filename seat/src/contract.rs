@@ -1,9 +1,10 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, from_slice, to_vec};
+use cosmwasm_std::{entry_point, from_slice, to_vec, CosmosMsg, WasmMsg, to_binary};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
 use semver::Version;
+use serde_json::json;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -31,7 +32,9 @@ pub fn instantiate(
     HUB_CONTRACT.save(deps.storage, &hub_contract)?;
     // instantiate all modules
     let mut modules = SeatModules::new(deps.as_ref());
-    modules.instantiate(deps, env, info, msg)
+    modules.instantiate(deps, env.clone(), info, &msg).and(Ok(Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute { contract_addr: msg.hub_contract, msg: to_binary(&json!({
+        "set_seat": env.contract.address.to_string()
+    }).to_string()).unwrap(), funds: vec![] }))))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -156,7 +159,7 @@ mod tests {
         let info = mock_info(CREATOR, &[]);
 
         let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
-        assert_eq!(0, res.messages.len());
+        assert_eq!(1, res.messages.len());
 
         // make sure seat contract metadata was created
         msg = json!({"metadata": {"get_metadata": {}}}).to_string();
@@ -231,7 +234,7 @@ mod tests {
         let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
 
         let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
-        assert_eq!(0, res.messages.len());
+        assert_eq!(1, res.messages.len());
 
         // mint a token
         for token_id in vec!["1", "2"] {

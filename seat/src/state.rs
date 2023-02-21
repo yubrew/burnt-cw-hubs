@@ -142,41 +142,41 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         deps: DepsMut,
         env: Env,
         info: MessageInfo,
-        msg: InstantiateMsg,
+        msg: &InstantiateMsg,
     ) -> Result<Response, ContractError> {
         let mut mut_deps = Box::new(deps);
 
         // ownable module
         self.ownable
             .borrow_mut()
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable.clone())
             .map_err(|err| ContractError::OwnableError(err))?;
 
         // metadata module
         self.metadata
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata.clone())
             .map_err(|err| ContractError::MetadataError(err))?;
 
         // Burnt token module
         self.seat_token
             .borrow_mut()
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.seat_token)
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.seat_token.clone())
             .map_err(|err| ContractError::SeatTokenError(err))?;
 
         // Redeemable token
         self.redeemable
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.redeemable)
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.redeemable.clone())
             .map_err(|err| ContractError::RedeemableError(err))?;
 
         self.sales
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.sales)
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.sales.clone())
             .map_err(|err| ContractError::SalesError(err))?;
 
         // Sellable token
-        if let Some(sellable_items) = msg.sellable {
+        if let Some(sellable_items) = &msg.sellable {
             self.sellable_token
                 .borrow_mut()
-                .instantiate(&mut mut_deps.branch(), &env, &info, sellable_items)
+                .instantiate(&mut mut_deps.branch(), &env, &info, sellable_items.clone())
                 .map_err(|err| ContractError::SellableError(err))?;
         } else {
             self.sellable_token
