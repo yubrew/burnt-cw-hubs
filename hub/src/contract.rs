@@ -202,7 +202,6 @@ mod tests {
 
         msg = json!({"update_metadata": { "seat_contract": env.contract.address.to_string() }})
             .to_string();
-        println!("{}", to_string(&ExecuteMsg::UpdateMetadata(MetadataField::SeatContract(env.contract.address.to_string()))).unwrap());
         let exec_msg: ExecuteMsg = from_str(&msg).unwrap();
         execute(deps.as_mut(), env.clone(), info, exec_msg).expect("seat contract set");
 
@@ -214,7 +213,7 @@ mod tests {
             MetadataQueryResp::Metadata(meta) => {
                 assert_eq!(
                     meta.seat_contract.unwrap().to_string(),
-                    "d".to_string()
+                    env.contract.address.to_string()
                 );
             }
         }
