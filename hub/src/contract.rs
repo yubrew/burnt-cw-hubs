@@ -71,7 +71,7 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
 
 #[cfg(test)]
 mod tests {
-    use crate::state::{HubMetadata, SocialLinks};
+    use crate::state::{HubMetadata, SocialLinks, MetadataField};
 
     use super::*;
     use cosmwasm_std::{
@@ -80,7 +80,7 @@ mod tests {
     };
     use metadata::QueryResp as MetadataQueryResp;
     use ownable::QueryResp as OwnableQueryResp;
-    use serde_json::{from_str, json};
+    use serde_json::{from_str, json, to_string};
 
     const CREATOR: &str = "CREATOR";
     // make sure ownable module is instantiated
@@ -99,6 +99,7 @@ mod tests {
             creator: CREATOR.to_string(),
             thumbnail_image_url: "image link here".to_string(),
             banner_image_url: "image link here".to_string(),
+            seat_contract: None,
         };
         //no owner specified in the instantiation message
         let mut msg = json!({
@@ -139,6 +140,7 @@ mod tests {
             creator: CREATOR.to_string(),
             thumbnail_image_url: "image link here".to_string(),
             banner_image_url: "image link here".to_string(),
+            seat_contract: None,
         };
         let mut msg = json!({
             "ownable": {
@@ -164,6 +166,56 @@ mod tests {
         match metadata {
             MetadataQueryResp::Metadata(meta) => {
                 assert_eq!(meta, metadata_msg);
+            }
+        }
+    }
+
+    #[test]
+    fn test_setting_seats() {
+        let mut deps = mock_dependencies();
+        let metadata_msg = HubMetadata {
+            name: "Kenny's contract".to_string(),
+            hub_url: "find me here".to_string(),
+            description: "Awesome Hub".to_string(),
+            tags: vec!["awesome".to_string(), "wild".to_string()],
+            social_links: vec![SocialLinks {
+                name: "discord".to_string(),
+                url: "discord link here".to_string(),
+            }],
+            creator: CREATOR.to_string(),
+            thumbnail_image_url: "image link here".to_string(),
+            banner_image_url: "image link here".to_string(),
+            seat_contract: None,
+        };
+        //no owner specified in the instantiation message
+        let mut msg = json!({
+            "metadata": {"metadata": metadata_msg},
+            "ownable": {"owner": CREATOR}
+        })
+        .to_string();
+        let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
+        let env = mock_env();
+        let info = mock_info(CREATOR, &[]);
+
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        msg = json!({"update_metadata": { "seat_contract": env.contract.address.to_string() }})
+            .to_string();
+        println!("{}", to_string(&ExecuteMsg::UpdateMetadata(MetadataField::SeatContract(env.contract.address.to_string()))).unwrap());
+        let exec_msg: ExecuteMsg = from_str(&msg).unwrap();
+        execute(deps.as_mut(), env.clone(), info, exec_msg).expect("seat contract set");
+
+        msg = json!({"metadata": {"get_metadata": {}}}).to_string();
+        let query_msg: QueryMsg = from_str(&msg).unwrap();
+        let res = query(deps.as_ref(), env.clone(), query_msg).unwrap();
+        let metadata: MetadataQueryResp<HubMetadata> = from_binary(&res).unwrap();
+        match metadata {
+            MetadataQueryResp::Metadata(meta) => {
+                assert_eq!(
+                    meta.seat_contract.unwrap().to_string(),
+                    "d".to_string()
+                );
             }
         }
     }

@@ -1,13 +1,12 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, from_slice, to_vec, CosmosMsg, WasmMsg, to_binary};
+use cosmwasm_std::{entry_point, from_slice, to_binary, to_vec, CosmosMsg, WasmMsg};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
 use semver::Version;
-use serde_json::json;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ResponseMsg, MetadataField};
 use crate::state::{Config, SeatModules, HUB_CONTRACT};
 
 // version info for migration info
@@ -32,9 +31,16 @@ pub fn instantiate(
     HUB_CONTRACT.save(deps.storage, &hub_contract)?;
     // instantiate all modules
     let mut modules = SeatModules::new(deps.as_ref());
-    modules.instantiate(deps, env.clone(), info, &msg).and(Ok(Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute { contract_addr: msg.hub_contract, msg: to_binary(&json!({
-        "set_seat": env.contract.address.to_string()
-    }).to_string()).unwrap(), funds: vec![] }))))
+    modules
+        .instantiate(deps, env.clone(), info, &msg)
+        .and(Ok(Response::new().add_message(CosmosMsg::Wasm(
+            WasmMsg::Execute {
+                contract_addr: msg.hub_contract,
+                msg: to_binary(&ResponseMsg::UpdateMetadata(MetadataField::SeatContract(env.contract.address.to_string())))
+                .unwrap(),
+                funds: vec![],
+            },
+        ))))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -87,7 +93,7 @@ mod tests {
 
     use crate::{
         msg::ExecuteMsg,
-        state::{SeatMetadata, TokenMetadata, SeatBenefits, ImageSettings},
+        state::{ImageSettings, SeatBenefits, SeatMetadata, TokenMetadata},
     };
 
     use super::*;

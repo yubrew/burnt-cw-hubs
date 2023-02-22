@@ -42,3 +42,13 @@ pub enum QueryMsg {
     Sellable(sellable::msg::QueryMsg),
     Sales(sales::msg::QueryMsg),
 }
+
+#[cw_serde]
+pub enum MetadataField {
+    SeatContract(String),
+}
+
+#[cw_serde]
+pub enum ResponseMsg {
+    UpdateMetadata(MetadataField),
+}

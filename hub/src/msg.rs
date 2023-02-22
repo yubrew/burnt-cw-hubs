@@ -1,7 +1,7 @@
 use cosmwasm_schema::cw_serde;
 use serde::{Deserialize, Serialize};
 
-use crate::state::HubMetadata;
+use crate::state::{HubMetadata, MetadataField};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -13,7 +13,7 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     Ownable(ownable::ExecuteMsg),
-    SetSeat(String),
+    UpdateMetadata(MetadataField),
 }
 
 #[cw_serde]

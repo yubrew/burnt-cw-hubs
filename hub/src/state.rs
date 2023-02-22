@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw_storage_plus::Item;
 use ownable::Ownable;
@@ -46,8 +47,39 @@ pub struct HubMetadata {
     pub creator: String,
     pub thumbnail_image_url: String,
     pub banner_image_url: String,
+    pub seat_contract: Option<Addr>,
+}
+#[cw_serde]
+pub enum MetadataField {
+    SeatContract(String),
 }
 
+impl<'a> HubMetadata {
+    pub fn set_seat_contract(
+        self,
+        modules: &mut HubModules<'a, HubMetadata>,
+        deps: &mut DepsMut,
+        env: Env,
+        info: MessageInfo,
+        address: &str,
+    ) -> Result<Response, ContractError> {
+        let new_metadata = HubMetadata {
+            seat_contract: Some(deps.api.addr_validate(address)?),
+            ..self
+        };
+
+        return modules
+            .metadata
+            .execute(
+                deps,
+                env,
+                info,
+                metadata::ExecuteMsg::SetMetadata(new_metadata),
+            )
+            .map_err(|err| ContractError::MetadataError(err))
+            .map(|_| Response::default());
+    }
+}
 pub struct HubModules<'a, T>
 where
     T: Serialize + DeserializeOwned,
@@ -114,16 +146,29 @@ impl<'a> HubModules<'a, HubMetadata> {
     ) -> Result<Response, ContractError> {
         let mut mut_deps = Box::new(deps);
         match msg {
-            ExecuteMsg::Ownable(msg) => {
-                self.ownable
-                    .execute(&mut mut_deps, env, info, msg)
-                    .map_err(|err| ContractError::OwnableError(err))
-                    .map(|_| Response::default())
-            },
-            ExecuteMsg::SetSeat(msg) => {
-                let seat_addr = mut_deps.api.addr_validate(&msg)?;
-                SEAT_CONTRACT.save(mut_deps.storage, &seat_addr)?;
-                Ok(Response::default())
+            ExecuteMsg::Ownable(msg) => self
+                .ownable
+                .execute(&mut mut_deps, env, info, msg)
+                .map_err(|err| ContractError::OwnableError(err))
+                .map(|_| Response::default()),
+
+            ExecuteMsg::UpdateMetadata(meta_field) => {
+                // get previous metadata
+                let old_meta = self
+                    .metadata
+                    .query(
+                        &mut_deps.as_ref().as_ref(),
+                        env.clone(),
+                        metadata::QueryMsg::GetMetadata {},
+                    )
+                    .unwrap();
+                match meta_field {
+                    MetadataField::SeatContract(address) => match old_meta {
+                        metadata::QueryResp::Metadata(meta) => {
+                            meta.set_seat_contract(self, &mut mut_deps, env, info, address.as_str())
+                        }
+                    },
+                }
             }
         }
     }
