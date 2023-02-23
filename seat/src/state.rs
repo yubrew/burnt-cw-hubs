@@ -250,7 +250,10 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
 
             QueryMsg::Metadata(msg) => to_binary(&self.metadata.query(&deps, env, msg).unwrap()),
             QueryMsg::SeatToken(msg) => {
-                to_binary(&self.seat_token.borrow_mut().query(&deps, env, msg).unwrap())
+                let res = self.seat_token.borrow_mut().query(&deps, env, msg).unwrap();
+                match res {
+                    token::QueryResp::Result(resp) => Ok(resp),
+                }
             }
             QueryMsg::Redeemable(msg) => {
                 to_binary(&self.redeemable.query(&deps, env, msg).unwrap())
