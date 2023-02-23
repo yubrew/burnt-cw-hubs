@@ -6,7 +6,7 @@ use cw2::set_contract_version;
 use semver::Version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ResponseMsg, MetadataField};
+use crate::msg::{ExecuteMsg, InstantiateMsg, MetadataField, QueryMsg, ResponseMsg};
 use crate::state::{Config, SeatModules, HUB_CONTRACT};
 
 // version info for migration info
@@ -31,8 +31,7 @@ pub fn instantiate(
     HUB_CONTRACT.save(deps.storage, &hub_contract)?;
     // instantiate all modules
     let mut modules = SeatModules::new(deps.as_ref());
-    modules
-        .instantiate(deps, env.clone(), info, &msg)
+    modules.instantiate(deps, env.clone(), info, &msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
