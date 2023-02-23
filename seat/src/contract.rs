@@ -33,14 +33,6 @@ pub fn instantiate(
     let mut modules = SeatModules::new(deps.as_ref());
     modules
         .instantiate(deps, env.clone(), info, &msg)
-        .and(Ok(Response::new().add_message(CosmosMsg::Wasm(
-            WasmMsg::Execute {
-                contract_addr: msg.hub_contract,
-                msg: to_binary(&ResponseMsg::UpdateMetadata(MetadataField::SeatContract(env.contract.address.to_string())))
-                .unwrap(),
-                funds: vec![],
-            },
-        ))))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
