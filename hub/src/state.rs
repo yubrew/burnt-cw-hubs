@@ -55,7 +55,7 @@ pub enum MetadataField {
 }
 
 impl<'a> HubMetadata {
-    pub fn set_seat_contract(
+    pub fn update_seat_contract(
         self,
         modules: &mut HubModules<'a, HubMetadata>,
         deps: &mut DepsMut,
@@ -165,7 +165,7 @@ impl<'a> HubModules<'a, HubMetadata> {
                 match meta_field {
                     MetadataField::SeatContract(address) => match old_meta {
                         metadata::QueryResp::Metadata(meta) => {
-                            meta.set_seat_contract(self, &mut mut_deps, env, info, address.as_str())
+                            meta.update_seat_contract(self, &mut mut_deps, env, info, address.as_str())
                         }
                     },
                 }
