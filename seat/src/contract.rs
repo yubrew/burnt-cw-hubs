@@ -1,12 +1,12 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, from_slice, to_vec};
+use cosmwasm_std::{entry_point, from_slice, to_binary, to_vec, CosmosMsg, WasmMsg};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
 use semver::Version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, MetadataField, QueryMsg, ResponseMsg};
 use crate::state::{Config, SeatModules, HUB_CONTRACT};
 
 // version info for migration info
@@ -31,7 +31,7 @@ pub fn instantiate(
     HUB_CONTRACT.save(deps.storage, &hub_contract)?;
     // instantiate all modules
     let mut modules = SeatModules::new(deps.as_ref());
-    modules.instantiate(deps, env, info, msg)
+    modules.instantiate(deps, env.clone(), info, &msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -84,7 +84,7 @@ mod tests {
 
     use crate::{
         msg::ExecuteMsg,
-        state::{SeatMetadata, TokenMetadata, SeatBenefits, ImageSettings},
+        state::{ImageSettings, SeatBenefits, SeatMetadata, TokenMetadata},
     };
 
     use super::*;
@@ -156,7 +156,7 @@ mod tests {
         let info = mock_info(CREATOR, &[]);
 
         let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
-        assert_eq!(0, res.messages.len());
+        assert_eq!(1, res.messages.len());
 
         // make sure seat contract metadata was created
         msg = json!({"metadata": {"get_metadata": {}}}).to_string();
@@ -231,7 +231,7 @@ mod tests {
         let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
 
         let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
-        assert_eq!(0, res.messages.len());
+        assert_eq!(1, res.messages.len());
 
         // mint a token
         for token_id in vec!["1", "2"] {

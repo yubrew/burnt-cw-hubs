@@ -41,19 +41,19 @@ pub struct SeatMetadata {
     pub description: String,
     pub benefits: Vec<SeatBenefits>,
     pub template_number: u8,
-    pub image_settings: ImageSettings
+    pub image_settings: ImageSettings,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct SeatBenefits {
     pub name: String,
-    pub status: String
+    pub status: String,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct ImageSettings {
     pub seat_name: bool,
-    pub hub_name: bool
+    pub hub_name: bool,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -142,41 +142,41 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         deps: DepsMut,
         env: Env,
         info: MessageInfo,
-        msg: InstantiateMsg,
+        msg: &InstantiateMsg,
     ) -> Result<Response, ContractError> {
         let mut mut_deps = Box::new(deps);
 
         // ownable module
         self.ownable
             .borrow_mut()
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable.clone())
             .map_err(|err| ContractError::OwnableError(err))?;
 
         // metadata module
         self.metadata
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata.clone())
             .map_err(|err| ContractError::MetadataError(err))?;
 
         // Burnt token module
         self.seat_token
             .borrow_mut()
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.seat_token)
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.seat_token.clone())
             .map_err(|err| ContractError::SeatTokenError(err))?;
 
         // Redeemable token
         self.redeemable
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.redeemable)
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.redeemable.clone())
             .map_err(|err| ContractError::RedeemableError(err))?;
 
         self.sales
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.sales)
+            .instantiate(&mut mut_deps.branch(), &env, &info, msg.sales.clone())
             .map_err(|err| ContractError::SalesError(err))?;
 
         // Sellable token
-        if let Some(sellable_items) = msg.sellable {
+        if let Some(sellable_items) = &msg.sellable {
             self.sellable_token
                 .borrow_mut()
-                .instantiate(&mut mut_deps.branch(), &env, &info, sellable_items)
+                .instantiate(&mut mut_deps.branch(), &env, &info, sellable_items.clone())
                 .map_err(|err| ContractError::SellableError(err))?;
         } else {
             self.sellable_token
@@ -250,7 +250,10 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
 
             QueryMsg::Metadata(msg) => to_binary(&self.metadata.query(&deps, env, msg).unwrap()),
             QueryMsg::SeatToken(msg) => {
-                to_binary(&self.seat_token.borrow_mut().query(&deps, env, msg).unwrap())
+                let res = self.seat_token.borrow_mut().query(&deps, env, msg).unwrap();
+                match res {
+                    token::QueryResp::Result(resp) => Ok(resp),
+                }
             }
             QueryMsg::Redeemable(msg) => {
                 to_binary(&self.redeemable.query(&deps, env, msg).unwrap())
