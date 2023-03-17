@@ -1,5 +1,6 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Empty;
+use cosmwasm_std::{Addr, Empty, Uint64};
+use cw721_base::state::Approval;
 use serde::{Deserialize, Serialize};
 
 use crate::state::{SeatMetadata, TokenMetadata};
@@ -41,6 +42,17 @@ pub enum QueryMsg {
     Redeemable(redeemable::QueryMsg),
     Sellable(sellable::msg::QueryMsg),
     Sales(sales::msg::QueryMsg),
+    AllSeats {},
+}
+
+#[cw_serde]
+pub struct SeatInfo {
+    pub token_id: String,
+    pub listed_price: Option<Uint64>,
+    pub owner: Addr,
+    pub approvals: Vec<Approval>,
+    pub token_uri: Option<String>,
+    pub extension: TokenMetadata,
 }
 
 #[cw_serde]

@@ -92,7 +92,7 @@ pub const SEAT_CONTRACT: Item<Addr> = Item::new("seat_contract");
 
 impl<'a> Default for HubModules<'a, HubMetadata> {
     fn default() -> Self {
-        let ownable = ownable::Ownable::default();
+        let ownable = Ownable::default();
         let borrowable_ownable = Rc::new(RefCell::new(ownable));
 
         let metadata = metadata::Metadata::new(
@@ -164,9 +164,13 @@ impl<'a> HubModules<'a, HubMetadata> {
                     .unwrap();
                 match meta_field {
                     MetadataField::SeatContract(address) => match old_meta {
-                        metadata::QueryResp::Metadata(meta) => {
-                            meta.update_seat_contract(self, &mut mut_deps, env, info, address.as_str())
-                        }
+                        metadata::QueryResp::Metadata(meta) => meta.update_seat_contract(
+                            self,
+                            &mut mut_deps,
+                            env,
+                            info,
+                            address.as_str(),
+                        ),
                     },
                 }
             }
