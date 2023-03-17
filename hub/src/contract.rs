@@ -71,7 +71,7 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
 
 #[cfg(test)]
 mod tests {
-    use crate::state::{HubMetadata, SocialLinks, MetadataField};
+    use crate::state::{HubMetadata, MetadataField, SocialLinks};
 
     use super::*;
     use cosmwasm_std::{

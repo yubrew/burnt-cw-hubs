@@ -1,15 +1,21 @@
+use cosmwasm_schema::cw_serde;
+
+use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, BondedDenomResponse, Deps, DepsMut, Empty, Env, MessageInfo,
+    to_binary, Addr, Binary, BondedDenomResponse, Deps, DepsMut, Empty, Env, MessageInfo, Order,
     QueryRequest, Response, StakingQuery, StdResult, Uint64,
 };
+use cw721::Cw721Query;
+use cw721_base::state::TokenInfo;
 use cw_storage_plus::{Item, Map};
 use ownable::Ownable;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use token::Tokens;
 
+use crate::msg::SeatInfo;
 use crate::{
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
     ContractError,
@@ -56,7 +62,7 @@ pub struct ImageSettings {
     pub hub_name: bool,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+#[cw_serde]
 pub struct TokenMetadata {
     pub description: Option<String>,
     pub name: Option<String>,
@@ -98,7 +104,7 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         // instantiate all modules
 
         // ownable module
-        let ownable = ownable::Ownable::default();
+        let ownable = Ownable::default();
 
         let borrowable_ownable = Rc::new(RefCell::new(ownable));
         // metadata module
@@ -266,7 +272,29 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
                     .unwrap(),
             ),
             QueryMsg::Sales(msg) => to_binary(&self.sales.query(&deps, env, msg).unwrap()),
+            QueryMsg::AllSeats {} => to_binary(&self.get_all_seats(deps)),
         }
+    }
+
+    pub fn get_all_seats(&self, deps: Deps) -> Vec<SeatInfo> {
+        let seat_token = &self.seat_token.borrow().contract;
+        let listed = &self.sellable_token.borrow().listed_tokens;
+        seat_token
+            .tokens
+            .range(deps.storage, None, None, Order::Ascending)
+            .flatten()
+            .map(|(token_id, info)| {
+                let listed_price = listed.load(deps.storage, token_id.as_str()).ok();
+                SeatInfo {
+                    token_id,
+                    listed_price,
+                    owner: info.owner,
+                    approvals: info.approvals,
+                    token_uri: info.token_uri,
+                    extension: info.extension,
+                }
+            })
+            .collect()
     }
 }
 pub const CONFIG: Item<Config> = Item::new("config");
