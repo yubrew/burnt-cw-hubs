@@ -1,12 +1,12 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, from_slice, to_binary, to_vec, CosmosMsg, WasmMsg};
+use cosmwasm_std::{entry_point, from_slice, to_vec};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
 use semver::Version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, MetadataField, QueryMsg, ResponseMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{Config, SeatModules, HUB_CONTRACT};
 
 // version info for migration info
@@ -91,7 +91,7 @@ mod tests {
     use cosmwasm_std::{
         from_binary,
         testing::{mock_dependencies, mock_env, mock_info},
-        Coin, Empty, Timestamp, Uint64,
+        Coin, Empty, Timestamp,
     };
     use cw721::{Cw721QueryMsg, NumTokensResponse, TokensResponse};
     use cw721_base::{ExecuteMsg as Cw721BaseExecuteMsg, MintMsg, QueryMsg as Cw721BaseQueryMsg};
@@ -106,7 +106,6 @@ mod tests {
         QueryResp as SellableQueryResp,
     };
     use serde_json::{from_str, json};
-    use token::QueryResp as TokenQueryResp;
 
     const CREATOR: &str = "cosmos188rjfzzrdxlus60zgnrvs4rg0l73hct3azv93z";
     const USER: &str = "burnt188rjfzzrdxlus60zgnrvs4rg0l73hct3mlvdpe";
@@ -145,7 +144,7 @@ mod tests {
                 "locked_items": Set::<String>::new()
             },
             "sellable": {
-                "tokens": Map::<&str, Uint64>::new()
+                "tokens": Map::<&str, Coin>::new()
             },
             "sales": {},
             "hub_contract": "cosmos188rjfzzrdxlus60zgnrvs4rg0l73hct3azv93z"
@@ -155,8 +154,7 @@ mod tests {
         let env = mock_env();
         let info = mock_info(CREATOR, &[]);
 
-        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
-        assert_eq!(1, res.messages.len());
+        instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
 
         // make sure seat contract metadata was created
         msg = json!({"metadata": {"get_metadata": {}}}).to_string();
@@ -176,13 +174,8 @@ mod tests {
             from_str(&json!({ "seat_token": query_msg }).to_string()).unwrap(),
         )
         .unwrap();
-        let result: TokenQueryResp = from_binary(&res).unwrap();
-        match result {
-            TokenQueryResp::Result(res) => {
-                let token_count: NumTokensResponse = from_binary(&res).unwrap();
-                assert_eq!(token_count.count, 0);
-            }
-        }
+        let result: NumTokensResponse = from_binary(&res).unwrap();
+        assert_eq!(result.count, 0);
     }
 
     #[test]
@@ -230,8 +223,7 @@ mod tests {
         let info = mock_info(CREATOR, &[]);
         let instantiate_msg: InstantiateMsg = from_str(&msg).unwrap();
 
-        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
-        assert_eq!(1, res.messages.len());
+        instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
 
         // mint a token
         for token_id in vec!["1", "2"] {
@@ -264,13 +256,8 @@ mod tests {
             from_str(&json!({ "seat_token": query_msg }).to_string()).unwrap(),
         )
         .unwrap();
-        let result: TokenQueryResp = from_binary(&res).unwrap();
-        match result {
-            TokenQueryResp::Result(res) => {
-                let token_count: NumTokensResponse = from_binary(&res).unwrap();
-                assert_eq!(token_count.count, 2);
-            }
-        }
+        let result: NumTokensResponse = from_binary(&res).unwrap();
+        assert_eq!(result.count, 2);
 
         // Get all listed tokens
         let query_msg = SellableQueryMsg::ListedTokens {
@@ -292,8 +279,8 @@ mod tests {
         // List the token
         let msg = SellableExecuteMsg::List {
             listings: Map::from([
-                ("1".to_string(), Uint64::new(200)),
-                ("2".to_string(), Uint64::new(100)),
+                ("1".to_string(), Coin::new(200, "uturnt")),
+                ("2".to_string(), Coin::new(100, "uturnt")),
             ]),
         };
         let list_msg = json!({ "sellable": msg }).to_string();
@@ -317,9 +304,11 @@ mod tests {
             }
         }
         // buy a token
-        let msg = SellableExecuteMsg::Buy {};
+        let msg = SellableExecuteMsg::BuyToken {
+            token_id: "1".to_string(),
+        };
         let buy_msg = json!({ "sellable": msg }).to_string();
-        let buyer_info = mock_info("buyer", &[Coin::new(200, "ustake")]);
+        let buyer_info = mock_info("buyer", &[Coin::new(200, "uturnt")]);
         execute(
             deps.as_mut(),
             env.clone(),
@@ -343,8 +332,8 @@ mod tests {
             SellableQueryResp::ListedTokens(res) => {
                 assert_eq!(res.len(), 1);
                 let (token_id, price, _) = &res[0];
-                assert_eq!(token_id, "1");
-                assert_eq!(price, Uint64::new(200));
+                assert_eq!(token_id, "2");
+                assert_eq!(*price, Coin::new(100, "uturnt"));
             }
         }
         // Lock the token
@@ -366,7 +355,9 @@ mod tests {
             }
         }
         // buy a token
-        let msg = SellableExecuteMsg::Buy {};
+        let msg = SellableExecuteMsg::BuyToken {
+            token_id: "1".to_string(),
+        };
         let buy_msg = from_str(&json!({ "sellable": msg }).to_string()).unwrap();
         let buyer_info = mock_info("buyer", &[Coin::new(10, "ustake")]);
         let buy_response = execute(deps.as_mut(), env.clone(), buyer_info, buy_msg);
@@ -388,14 +379,9 @@ mod tests {
             env.clone(),
             from_str(&json!({ "seat_token": query_msg }).to_string()).unwrap(),
         );
-        let result: TokenQueryResp = from_binary(&res.unwrap()).unwrap();
-        match result {
-            TokenQueryResp::Result(res) => {
-                let tokens: TokensResponse = from_binary(&res).unwrap();
-                assert_eq!(tokens.tokens.len(), 1);
-                assert_eq!(tokens.tokens[0], "2");
-            }
-        }
+        let result: TokensResponse = from_binary(&res.unwrap()).unwrap();
+        assert_eq!(result.tokens.len(), 1);
+        assert_eq!(result.tokens[0], "1");
     }
 
     #[test]
