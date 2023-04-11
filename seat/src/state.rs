@@ -204,45 +204,48 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         env: Env,
         info: MessageInfo,
         msg: ExecuteMsg,
-    ) -> Result<Response, ContractError> {
+    ) -> Result<Response<Binary>, ContractError> {
         let mut mut_deps = Box::new(deps);
         match msg {
-            ExecuteMsg::Ownable(msg) => {
-                self.ownable
-                    .borrow_mut()
-                    .execute(&mut mut_deps, env, info, msg)
-                    .map_err(|err| ContractError::OwnableError(err))?;
-            }
-            ExecuteMsg::Metadata(msg) => {
-                self.metadata
-                    .execute(&mut mut_deps, env, info, msg)
-                    .map_err(|err| ContractError::MetadataError(err))?;
-            }
-            ExecuteMsg::SeatToken(msg) => {
-                self.seat_token
-                    .borrow_mut()
-                    .execute(&mut mut_deps, env, info, msg)
-                    .map_err(|err| ContractError::SeatTokenError(err))?;
-            }
-            ExecuteMsg::Redeemable(msg) => {
-                self.redeemable
-                    .execute(&mut mut_deps, env, info, msg)
-                    .map_err(|err| ContractError::RedeemableError(err))?;
-            }
-            ExecuteMsg::Sellable(msg) => {
-                self.sellable_token
-                    .borrow_mut()
-                    .execute(&mut mut_deps, env, info, msg)
-                    .map_err(|err| ContractError::SellableError(err))?;
-            }
+            ExecuteMsg::Ownable(msg) => self
+                .ownable
+                .borrow_mut()
+                .execute(&mut mut_deps, env, info, msg)
+                .map(|response| response.response)
+                .map_err(|err| ContractError::OwnableError(err)),
 
-            ExecuteMsg::Sales(msg) => {
-                self.sales
-                    .execute(&mut mut_deps, env, info, msg)
-                    .map_err(|err| ContractError::SalesError(err))?;
-            }
+            ExecuteMsg::Metadata(msg) => self
+                .metadata
+                .execute(&mut mut_deps, env, info, msg)
+                .map(|response| response.response)
+                .map_err(|err| ContractError::MetadataError(err)),
+
+            ExecuteMsg::SeatToken(msg) => self
+                .seat_token
+                .borrow_mut()
+                .execute(&mut mut_deps, env, info, msg)
+                .map(|response| response.response)
+                .map_err(|err| ContractError::SeatTokenError(err)),
+
+            ExecuteMsg::Redeemable(msg) => self
+                .redeemable
+                .execute(&mut mut_deps, env, info, msg)
+                .map(|response| response.response)
+                .map_err(|err| ContractError::RedeemableError(err)),
+
+            ExecuteMsg::Sellable(msg) => self
+                .sellable_token
+                .borrow_mut()
+                .execute(&mut mut_deps, env, info, msg)
+                .map(|response| response.response)
+                .map_err(|err| ContractError::SellableError(err)),
+
+            ExecuteMsg::Sales(msg) => self
+                .sales
+                .execute(&mut mut_deps, env, info, msg)
+                .map(|response| response.response)
+                .map_err(|err| ContractError::SalesError(err)),
         }
-        Ok(Response::default())
     }
 
     pub fn query(&self, deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
