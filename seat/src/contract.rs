@@ -44,6 +44,9 @@ pub fn execute(
     let mut modules = SeatModules::new(deps.as_ref());
     modules.execute(deps, env, info, msg).map(|response| {
         let mut res = Response::new();
+        res.attributes = response.attributes;
+        res.data = response.data;
+        res.events = response.events;
         for message in &response.messages {
             match &message.msg {
                 CosmosMsg::Bank(msg) => {
