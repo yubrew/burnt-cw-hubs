@@ -1,6 +1,6 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, from_slice, to_vec};
+use cosmwasm_std::{entry_point, from_slice, to_vec, CosmosMsg};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
 use semver::Version;
@@ -42,7 +42,18 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     let mut modules = SeatModules::new(deps.as_ref());
-    modules.execute(deps, env, info, msg)
+    modules.execute(deps, env, info, msg).map(|response| {
+        let mut res = Response::new();
+        res.attributes = response.attributes;
+        res.data = response.data;
+        res.events = response.events;
+        for message in &response.messages {
+            if let CosmosMsg::Bank(msg) = &message.msg {
+                res = res.add_message(msg.clone());
+            }
+        }
+        res
+    })
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
