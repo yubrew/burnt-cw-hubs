@@ -48,12 +48,9 @@ pub fn execute(
         res.data = response.data;
         res.events = response.events;
         for message in &response.messages {
-            match &message.msg {
-                CosmosMsg::Bank(msg) => {
-                    res = res.add_message(msg.clone());
-                }
-                _ => todo!(),
-            };
+            if let CosmosMsg::Bank(msg) = &message.msg {
+                res = res.add_message(msg.clone());
+            }
         }
         res
     })
