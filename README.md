@@ -39,6 +39,9 @@ Now, deploy to your node
 ```
 which should store the contract to the node and you can instantiate your contract. Refer to each contract docs for instantiate msgs
 
+**NB:**
+If you don't want to build the contract from scratch, simply download the latest release and delpoy those
+
 ## Going Further
 
 [Developing](./Developing.md) to explain
