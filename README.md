@@ -1,4 +1,4 @@
-# Bunrt Labs - smart contracts
+# Burnt Labs - smart contracts
 
 This is the official repo of Burnt Labs suite of smart contracts built on Cosmos with CosmWasm.
 These contracts are in constant development and most recent QA approved changes would be at the tip of the testnet branch. More stable versions of the contract are in the main repository. 
