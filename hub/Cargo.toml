@@ -53,10 +53,10 @@ burnt-glue = { workspace = true }
 semver = { workspace = true }
 ownable = { workspace = true }
 metadata = { workspace = true }
-cargo-tarpaulin = "0.25.2"
 
 [dev-dependencies]
 cw-multi-test = "0.15.1"
+cargo-tarpaulin = "0.25.2"
 [dev-dependencies.cargo-husky]
 version = "1"
 default-features = false # Disable features which are enabled by default
