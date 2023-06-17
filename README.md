@@ -7,14 +7,14 @@ The contracts are written in Rust as is the de-facto language for CosmWasm, besi
 ## Setting up for local development
 First, [install rust](https://rustup.rs/)
 
-Now you need the wasm toolchaion for Rust
+Now you need the wasm toolchain for Rust
 Follow this commands
  ```bash
  rustup update stable
  ```
  and the toolchain
  ```bash
- rustup target add wasm32-unknown-unknown --toolchain nightly
+ rustup target add wasm32-unknown-unknown --toolchain
  ```
  and you should be all set. Run the unit-test
  ```bash
@@ -40,7 +40,7 @@ Now, deploy to your node
 which should store the contract to the node and you can instantiate your contract. Refer to each contract docs for instantiate msgs
 
 **NB:**
-If you don't want to build the contract from scratch, simply download the latest release and delpoy those
+If you don't want to build the contract from scratch, simply download the latest release and deploy those
 
 ## Going Further
 
