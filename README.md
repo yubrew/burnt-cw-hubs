@@ -1,4 +1,4 @@
-# Burnt Labs - smart contracts
+# Burnt Labs - Smart Contracts
 
 This is the official repo of Burnt Labs suite of smart contracts built on Cosmos with CosmWasm.
 These contracts are in constant development and most recent QA approved changes would be at the tip of the testnet branch. More stable versions of the contract are in the main repository. 
@@ -42,14 +42,4 @@ which should store the contract to the node and you can instantiate your contrac
 **NB:**
 If you don't want to build the contract from scratch, simply download the latest release and deploy those
 
-## Going Further
 
-[Developing](./Developing.md) to explain
-more on how to run tests and develop code. Or go through the
-[online tutorial](https://docs.cosmwasm.com/) to get a better feel
-of how to develop.
-
-[Publishing](./Publishing.md) contains useful information on how to publish your contract
-to the world, once you are ready to deploy it on a running blockchain. And
-[Importing](./Importing.md) contains information about pulling in other contracts or crates
-that have been published.
