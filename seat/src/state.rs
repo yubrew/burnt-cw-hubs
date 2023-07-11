@@ -152,11 +152,6 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.seat_token.clone())
             .map_err(ContractError::SeatTokenError)?;
 
-        // Redeemable token
-        self.redeemable
-            .instantiate(&mut mut_deps.branch(), &env, &info, msg.redeemable.clone())
-            .map_err(ContractError::RedeemableError)?;
-
         self.sales
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.sales.clone())
             .map_err(ContractError::SalesError)?;
@@ -209,11 +204,6 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
                 .borrow_mut()
                 .execute(&mut mut_deps, env, info, msg)
                 .map_err(ContractError::SeatTokenError),
-
-            ExecuteMsg::Redeemable(msg) => self
-                .redeemable
-                .execute(&mut mut_deps, env, info, msg)
-                .map_err(ContractError::RedeemableError),
 
             ExecuteMsg::Sellable(msg) => self
                 .sellable_token
