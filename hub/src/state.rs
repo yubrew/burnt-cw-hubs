@@ -2,7 +2,9 @@ use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{
+    to_binary, Addr, Binary, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult,
+};
 use cw_storage_plus::Item;
 use ownable::Ownable;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -112,7 +114,12 @@ impl<'a> HubModules<'a, HubMetadata> {
     ) -> Result<Response, ContractError> {
         // Instantiate all modules
         let mut mut_deps = Box::new(deps);
-
+        let hub_metadata = serde_json::to_string(&msg.metadata.metadata).unwrap();
+        let response = Response::new().add_event(
+            Event::new("hub_created")
+                .add_attribute("contract_address", env.contract.address.to_string())
+                .add_attribute("hub_metadata", hub_metadata),
+        );
         self.ownable
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
             .map_err(ContractError::OwnableError)?;
@@ -120,7 +127,7 @@ impl<'a> HubModules<'a, HubMetadata> {
         self.metadata
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
             .map_err(ContractError::MetadataError)?;
-        Ok(Response::default())
+        Ok(response)
     }
 
     pub fn execute(
