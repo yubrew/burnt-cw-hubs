@@ -1,22 +1,23 @@
-use cosmwasm_schema::cw_serde;
-
 use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, BondedDenomResponse, Coin, Deps, DepsMut, Empty, Env, MessageInfo,
-    Order, QueryRequest, Response, StakingQuery, StdResult,
+    Addr, Binary, Coin, Deps, DepsMut, Empty, Env, MessageInfo, Order,
+    Response, StdResult, to_binary,
 };
 use cw_storage_plus::{Item, Map};
 use ownable::Ownable;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use token::Tokens;
 
-use crate::msg::SeatInfo;
+use allowable::Allowable;
+
 use crate::{
-    msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
     ContractError,
+    msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
 };
+use crate::msg::SeatInfo;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Config {
@@ -77,6 +78,7 @@ where
     T: Serialize + DeserializeOwned,
     U: Serialize + DeserializeOwned + Clone,
 {
+    pub allowable: Rc<RefCell<Allowable<'a>>>,
     pub ownable: Rc<RefCell<Ownable<'a>>>,
     pub metadata: metadata::Metadata<'a, T>,
     pub seat_token: Rc<RefCell<Tokens<'a, U, Empty, Empty, Empty>>>,
@@ -88,16 +90,7 @@ where
 pub const HUB_CONTRACT: Item<Addr> = Item::new("hub_contract");
 
 impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
-    pub fn new(deps: Deps) -> Self {
-        // query for bond denom
-        let bond_denom_request = QueryRequest::Staking(StakingQuery::BondedDenom {});
-        // throw if this fails
-        let bond_denom_resp: BondedDenomResponse = deps
-            .querier
-            .query(&bond_denom_request)
-            .map_err(ContractError::from)
-            .unwrap();
-        let bond_denom = bond_denom_resp.denom;
+    pub fn new(_deps: Deps) -> Self {
         // instantiate all modules
 
         // ownable module
@@ -109,10 +102,12 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
             Item::<SeatMetadata>::new("metadata"),
             borrowable_ownable.clone(),
         );
+        let allowable = Allowable::default();
+        let borrowable_allowable = Rc::new(RefCell::new(allowable));
+
         // Burnt token module
         let seat_token = Tokens::<TokenMetadata, Empty, Empty, Empty>::new(
             cw721_base::Cw721Contract::default(),
-            Some(bond_denom),
         );
         let borrowable_seat_token = Rc::new(RefCell::new(seat_token));
         // Redeemable token
@@ -120,6 +115,7 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         // Sellable token
         let sellable_token = sellable::Sellable::new(
             borrowable_seat_token.clone(),
+            borrowable_allowable.clone(),
             borrowable_ownable.clone(),
             Map::new("listed_tokens"),
         );
@@ -131,6 +127,7 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         );
 
         SeatModules {
+            allowable: borrowable_allowable,
             ownable: borrowable_ownable,
             metadata,
             seat_token: borrowable_seat_token,

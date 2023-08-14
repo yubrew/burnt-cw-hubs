@@ -14,6 +14,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "allowable"
+version = "0.1.0"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#9c9e7fb93a478fb21aafa7218f945b62575e57eb"
+dependencies = [
+ "burnt-glue",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.16.0",
+ "cw2 0.15.1",
+ "ownable",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -579,7 +596,7 @@ checksum = "3304a64d199bb964be99741b7a14d26972741915b3649639149b2479bb46f4b5"
 [[package]]
 name = "metadata"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#35f3d5485bce1b3367e49452e37a5af2f7761e21"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#9c9e7fb93a478fb21aafa7218f945b62575e57eb"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -608,7 +625,7 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 [[package]]
 name = "ownable"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#35f3d5485bce1b3367e49452e37a5af2f7761e21"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#9c9e7fb93a478fb21aafa7218f945b62575e57eb"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -690,7 +707,7 @@ dependencies = [
 [[package]]
 name = "redeemable"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#35f3d5485bce1b3367e49452e37a5af2f7761e21"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#9c9e7fb93a478fb21aafa7218f945b62575e57eb"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -726,8 +743,9 @@ checksum = "f91339c0467de62360649f8d3e185ca8de4224ff281f66000de5eb2a77a79041"
 [[package]]
 name = "sales"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#35f3d5485bce1b3367e49452e37a5af2f7761e21"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#9c9e7fb93a478fb21aafa7218f945b62575e57eb"
 dependencies = [
+ "allowable",
  "burnt-glue",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -771,6 +789,7 @@ dependencies = [
 name = "seat"
 version = "0.1.0"
 dependencies = [
+ "allowable",
  "burnt-glue",
  "cargo-husky",
  "cosmwasm-schema",
@@ -811,8 +830,9 @@ dependencies = [
 [[package]]
 name = "sellable"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#35f3d5485bce1b3367e49452e37a5af2f7761e21"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#9c9e7fb93a478fb21aafa7218f945b62575e57eb"
 dependencies = [
+ "allowable",
  "burnt-glue",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -986,7 +1006,7 @@ dependencies = [
 [[package]]
 name = "token"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std#35f3d5485bce1b3367e49452e37a5af2f7761e21"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#9c9e7fb93a478fb21aafa7218f945b62575e57eb"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
