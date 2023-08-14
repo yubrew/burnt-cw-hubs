@@ -349,24 +349,6 @@ mod tests {
                 assert_eq!(*price, Coin::new(100, "uturnt"));
             }
         }
-        // Lock the token
-        let msg = RedeemableExecuteMsg::RedeemItem("1".to_string());
-        let lock_msg: ExecuteMsg = from_str(&json!({ "redeemable": msg }).to_string()).unwrap();
-
-        execute(deps.as_mut(), env.clone(), info, lock_msg).unwrap();
-        // Confirm the token is locked
-        let query_msg = RedeemableQueryMsg::IsRedeemed("1".to_string());
-        let res = query(
-            deps.as_ref(),
-            env.clone(),
-            from_str(&json!({ "redeemable": query_msg }).to_string()).unwrap(),
-        );
-        let result: RedeemableQueryResp = from_binary(&res.unwrap()).unwrap();
-        match result {
-            RedeemableQueryResp::IsRedeemed(res) => {
-                assert!(res);
-            }
-        }
         // buy a token
         let msg = SellableExecuteMsg::BuyToken {
             token_id: "1".to_string(),

@@ -24,7 +24,6 @@ pub enum ExecuteMsg {
     Ownable(ownable::ExecuteMsg),
     Metadata(metadata::ExecuteMsg<SeatMetadata>),
     SeatToken(cw721_base::ExecuteMsg<TokenMetadata, Empty>),
-    Redeemable(redeemable::ExecuteMsg),
     Sellable(sellable::msg::ExecuteMsg),
     Sales(sales::msg::ExecuteMsg<TokenMetadata>),
 }
