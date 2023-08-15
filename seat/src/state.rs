@@ -75,8 +75,14 @@ where
 
 pub const HUB_CONTRACT: Item<Addr> = Item::new("hub_contract");
 
+impl<'a> Default for SeatModules<'a, SeatMetadata, TokenMetadata> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
-    pub fn new(_deps: Deps) -> Self {
+    pub fn new() -> Self {
         // instantiate all modules
 
         // ownable module
@@ -128,38 +134,51 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         env: Env,
         info: MessageInfo,
         msg: &InstantiateMsg,
-    ) -> Result<Response, ContractError> {
+    ) -> Result<Response<Binary>, ContractError> {
         let mut mut_deps = Box::new(deps);
+        let mut response = Response::<Binary>::new();
 
         // ownable module
-        self.ownable
+        let ownable_res = self
+            .ownable
             .borrow_mut()
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable.clone())
             .map_err(ContractError::OwnableError)?;
 
         // metadata module
-        self.metadata
+        let meta_res = self
+            .metadata
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata.clone())
             .map_err(ContractError::MetadataError)?;
 
         // Burnt token module
-        self.seat_token
+        let token_res = self
+            .seat_token
             .borrow_mut()
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.seat_token.clone())
             .map_err(ContractError::SeatTokenError)?;
 
-        self.sales
+        let sale_res = self
+            .sales
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.sales.clone())
             .map_err(ContractError::SalesError)?;
 
+        response = merge_responses(
+            &mut response,
+            vec![ownable_res, meta_res, token_res, sale_res],
+        );
+
         // Sellable token
         if let Some(sellable_items) = &msg.sellable {
-            self.sellable_token
+            let sellable_res = self
+                .sellable_token
                 .borrow_mut()
                 .instantiate(&mut mut_deps.branch(), &env, &info, sellable_items.clone())
                 .map_err(ContractError::SellableError)?;
+            response = merge_responses(&mut response, vec![sellable_res]);
         } else {
-            self.sellable_token
+            let sellable_res = self
+                .sellable_token
                 .borrow_mut()
                 .instantiate(
                     &mut mut_deps.branch(),
@@ -170,9 +189,10 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
                     },
                 )
                 .map_err(ContractError::SellableError)?;
+            response = merge_responses(&mut response, vec![sellable_res]);
         }
 
-        Ok(Response::default())
+        Ok(response)
     }
 
     pub fn execute(
@@ -212,7 +232,7 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
                 .execute(&mut mut_deps, env, info, msg)
                 .map_err(ContractError::SalesError),
         };
-        result.map(|r| r.response)
+        result.map(|r| r.into())
     }
 
     pub fn query(&self, deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -264,4 +284,26 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
             .collect()
     }
 }
+
+/// This function takes an array of responses and merges them into the main_response.
+/// It is used to merge the responses from the modules into one response
+/// Combining all the events and attributes into one response and messages and data into one
+fn merge_responses(
+    main_response: &mut Response<Binary>,
+    responses: Vec<burnt_glue::response::Response>,
+) -> Response<Binary> {
+    let mut main_response = main_response.clone();
+    for response in responses {
+        let data = response.data;
+        main_response.data = {
+            let bs = serde_json::to_vec(&data).unwrap();
+            Some(bs.into())
+        };
+        main_response.messages = response.response.messages;
+        main_response.attributes = response.response.attributes;
+        main_response.events = response.response.events;
+    }
+    main_response
+}
+
 pub const CONFIG: Item<Config> = Item::new("config");

@@ -18,11 +18,12 @@ pub fn instantiate(
     env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response, ContractError> {
+) -> Result<Response<Binary>, ContractError> {
     let mut mut_deps = Box::new(deps);
     // instantiate all modules
     let mut modules = HubModules::default();
     let res = modules.instantiate(mut_deps.branch(), env, info, msg);
+    // we are setting the contract version lastly to override any stored version by the modules or external contracts
     set_contract_version(mut_deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     res
 }
@@ -33,7 +34,7 @@ pub fn execute(
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
+) -> Result<Response<Binary>, ContractError> {
     let mut modules = HubModules::default();
     modules.execute(deps, env, info, msg)
 }

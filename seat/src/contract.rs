@@ -1,6 +1,6 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, from_slice, to_vec, CosmosMsg};
+use cosmwasm_std::{entry_point, from_slice, to_vec};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
 use semver::Version;
@@ -24,12 +24,12 @@ pub fn instantiate(
     env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response, ContractError> {
+) -> Result<Response<Binary>, ContractError> {
     let mut mut_deps = Box::new(deps);
     let hub_contract = mut_deps.branch().api.addr_validate(&msg.hub_contract)?;
     HUB_CONTRACT.save(mut_deps.storage, &hub_contract)?;
     // instantiate all modules
-    let mut modules = SeatModules::new(mut_deps.branch().as_ref());
+    let mut modules = SeatModules::new();
     let res = modules.instantiate(mut_deps.branch(), env, info.clone(), &msg);
     set_contract_version(mut_deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     CONFIG.save(mut_deps.storage, &Config { owner: info.sender })?;
@@ -42,25 +42,14 @@ pub fn execute(
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
-    let mut modules = SeatModules::new(deps.as_ref());
-    modules.execute(deps, env, info, msg).map(|response| {
-        let mut res = Response::new();
-        res.attributes = response.attributes;
-        res.data = response.data;
-        res.events = response.events;
-        for message in &response.messages {
-            if let CosmosMsg::Bank(msg) = &message.msg {
-                res = res.add_message(msg.clone());
-            }
-        }
-        res
-    })
+) -> Result<Response<Binary>, ContractError> {
+    let mut modules = SeatModules::new();
+    modules.execute(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    let modules = SeatModules::new(deps);
+    let modules = SeatModules::new();
     modules.query(deps, env, msg)
 }
 
@@ -106,7 +95,7 @@ mod tests {
         testing::{mock_dependencies, mock_env, mock_info},
         Coin, Empty, Timestamp,
     };
-    use cw721::{Cw721QueryMsg, NumTokensResponse, TokensResponse};
+    use cw721::{Cw721QueryMsg, NumTokensResponse};
     use cw721_base::{ExecuteMsg as Cw721BaseExecuteMsg, MintMsg, QueryMsg as Cw721BaseQueryMsg};
     use metadata::QueryResp as MetadataQueryResp;
     use schemars::{Map, Set};
@@ -296,13 +285,13 @@ mod tests {
         execute(
             deps.as_mut(),
             env.clone(),
-            info.clone(),
+            info,
             from_str(&list_msg).unwrap(),
         )
         .unwrap();
         let res = query(
             deps.as_ref(),
-            env.clone(),
+            env,
             from_str(&json!({ "sellable": query_msg }).to_string()).unwrap(),
         )
         .unwrap();
@@ -520,10 +509,8 @@ mod tests {
         .unwrap();
         let active_primary_sale: QueryResp = from_binary(&active_primary_sale_query).unwrap();
 
-        match active_primary_sale {
-            // there should be no active primary sale after the item is bought
-            QueryResp::ActivePrimarySale(Some(sale)) => assert!(false),
-            _ => assert!(true),
+        if let QueryResp::ActivePrimarySale(Some(_sale)) = active_primary_sale {
+            panic!()
         }
 
         // create a new primary sale
@@ -564,10 +551,9 @@ mod tests {
         .unwrap();
         let active_primary_sale: QueryResp = from_binary(&active_primary_sale_query).unwrap();
 
-        match active_primary_sale {
-            // there should be no active primary sale after sale is halted
-            QueryResp::ActivePrimarySale(Some(sale)) => assert!(false),
-            _ => assert!(true),
+        // there should be no active primary sale after sale is halted
+        if let QueryResp::ActivePrimarySale(Some(_sale)) = active_primary_sale {
+            panic!()
         }
     }
 }

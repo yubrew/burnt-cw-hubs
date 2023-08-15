@@ -50,7 +50,7 @@ impl<'a> HubMetadata {
         env: Env,
         info: MessageInfo,
         address: &str,
-    ) -> Result<Response, ContractError> {
+    ) -> Result<Response<Binary>, ContractError> {
         let new_metadata = HubMetadata {
             seat_contract: Some(deps.api.addr_validate(address)?),
             ..self
@@ -65,7 +65,7 @@ impl<'a> HubMetadata {
                 metadata::ExecuteMsg::SetMetadata(new_metadata),
             )
             .map_err(ContractError::MetadataError)
-            .map(|_| Response::default()) // convert the glue result into a cosmwasm_std response
+            .map(Response::from) // convert the glue result into a cosmwasm_std response
     }
 }
 pub struct HubModules<'a, T>
@@ -111,22 +111,24 @@ impl<'a> HubModules<'a, HubMetadata> {
         env: Env,
         info: MessageInfo,
         msg: InstantiateMsg,
-    ) -> Result<Response, ContractError> {
+    ) -> Result<Response<Binary>, ContractError> {
         // Instantiate all modules
         let mut mut_deps = Box::new(deps);
-        let hub_metadata = serde_json::to_string(&msg.metadata.metadata).unwrap();
-        let response = Response::new().add_event(
-            Event::new("hub_created")
-                .add_attribute("contract_address", env.contract.address.to_string())
-                .add_attribute("hub_metadata", hub_metadata),
+
+        let mut response = Response::new().add_event(
+            Event::new("hub-instantiate")
+                .add_attribute("contract_address", env.contract.address.to_string()),
         );
-        self.ownable
+        let ownable_response = self
+            .ownable
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.ownable)
             .map_err(ContractError::OwnableError)?;
 
-        self.metadata
+        let metadata_response = self
+            .metadata
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
             .map_err(ContractError::MetadataError)?;
+        response = merge_responses(&mut response, vec![ownable_response, metadata_response]);
         Ok(response)
     }
 
@@ -136,14 +138,15 @@ impl<'a> HubModules<'a, HubMetadata> {
         env: Env,
         info: MessageInfo,
         msg: ExecuteMsg,
-    ) -> Result<Response, ContractError> {
+    ) -> Result<Response<Binary>, ContractError> {
         let mut mut_deps = Box::new(deps);
+        let _response: Response<Binary> = Response::new();
         match msg {
             ExecuteMsg::Ownable(msg) => self
                 .ownable
                 .execute(&mut mut_deps, env, info, msg)
                 .map_err(ContractError::OwnableError)
-                .map(|_| Response::default()),
+                .map(Response::from),
 
             ExecuteMsg::UpdateMetadata(meta_field) => {
                 // get previous metadata
@@ -184,4 +187,25 @@ impl<'a> HubModules<'a, HubMetadata> {
                 .unwrap(),
         }
     }
+}
+
+/// This function takes an array of responses and merges them into the main_response.
+/// It is used to merge the responses from the modules into one response
+/// Combining all the events and attributes into one response and messages and data into one
+fn merge_responses(
+    main_response: &mut Response<Binary>,
+    responses: Vec<burnt_glue::response::Response>,
+) -> Response<Binary> {
+    let mut main_response = main_response.clone();
+    for response in responses {
+        let data = response.data;
+        main_response.data = {
+            let bs = serde_json::to_vec(&data).unwrap();
+            Some(bs.into())
+        };
+        main_response.messages = response.response.messages;
+        main_response.attributes = response.response.attributes;
+        main_response.events = response.response.events;
+    }
+    main_response
 }
