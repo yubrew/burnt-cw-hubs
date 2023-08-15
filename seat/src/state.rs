@@ -298,11 +298,6 @@ fn merge_responses(
 ) -> Response {
     let mut main_response = main_response.clone();
     for response in responses {
-        let data = response.data;
-        main_response.data = {
-            let bs = serde_json::to_vec(&data).unwrap();
-            Some(bs.into())
-        };
         // we only care about bank messages for now
         for message in &response.response.messages {
             if let CosmosMsg::Bank(msg) = &message.msg {
