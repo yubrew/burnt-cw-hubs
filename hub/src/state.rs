@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use burnt_glue::module::Module;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult,
+    to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult,
 };
 use cw_storage_plus::Item;
 use ownable::Ownable;
@@ -50,7 +50,7 @@ impl<'a> HubMetadata {
         env: Env,
         info: MessageInfo,
         address: &str,
-    ) -> Result<Response<Binary>, ContractError> {
+    ) -> Result<burnt_glue::response::Response, ContractError> {
         let new_metadata = HubMetadata {
             seat_contract: Some(deps.api.addr_validate(address)?),
             ..self
@@ -65,7 +65,6 @@ impl<'a> HubMetadata {
                 metadata::ExecuteMsg::SetMetadata(new_metadata),
             )
             .map_err(ContractError::MetadataError)
-            .map(Response::from) // convert the glue result into a cosmwasm_std response
     }
 }
 pub struct HubModules<'a, T>
@@ -111,7 +110,7 @@ impl<'a> HubModules<'a, HubMetadata> {
         env: Env,
         info: MessageInfo,
         msg: InstantiateMsg,
-    ) -> Result<Response<Binary>, ContractError> {
+    ) -> Result<Response, ContractError> {
         // Instantiate all modules
         let mut mut_deps = Box::new(deps);
 
@@ -138,15 +137,13 @@ impl<'a> HubModules<'a, HubMetadata> {
         env: Env,
         info: MessageInfo,
         msg: ExecuteMsg,
-    ) -> Result<Response<Binary>, ContractError> {
+    ) -> Result<Response, ContractError> {
         let mut mut_deps = Box::new(deps);
-        let _response: Response<Binary> = Response::new();
-        match msg {
+        let response = match msg {
             ExecuteMsg::Ownable(msg) => self
                 .ownable
                 .execute(&mut mut_deps, env, info, msg)
-                .map_err(ContractError::OwnableError)
-                .map(Response::from),
+                .map_err(ContractError::OwnableError),
 
             ExecuteMsg::UpdateMetadata(meta_field) => {
                 // get previous metadata
@@ -170,7 +167,11 @@ impl<'a> HubModules<'a, HubMetadata> {
                     },
                 }
             }
-        }
+        };
+        response.map(|r| {
+            let mut res = Response::new();
+            merge_responses(&mut res, vec![r])
+        })
     }
 
     pub fn query(&self, deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -193,9 +194,9 @@ impl<'a> HubModules<'a, HubMetadata> {
 /// It is used to merge the responses from the modules into one response
 /// Combining all the events and attributes into one response and messages and data into one
 fn merge_responses(
-    main_response: &mut Response<Binary>,
+    main_response: &mut Response,
     responses: Vec<burnt_glue::response::Response>,
-) -> Response<Binary> {
+) -> Response {
     let mut main_response = main_response.clone();
     for response in responses {
         let data = response.data;
@@ -203,7 +204,12 @@ fn merge_responses(
             let bs = serde_json::to_vec(&data).unwrap();
             Some(bs.into())
         };
-        main_response.messages = response.response.messages;
+        // we only care about bank messages for now
+        for message in &response.response.messages {
+            if let CosmosMsg::Bank(msg) = &message.msg {
+                main_response = main_response.add_message(msg.clone());
+            }
+        }
         main_response.attributes = response.response.attributes;
         main_response.events = response.response.events;
     }

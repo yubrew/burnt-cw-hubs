@@ -24,7 +24,7 @@ pub fn instantiate(
     env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<Binary>, ContractError> {
+) -> Result<Response, ContractError> {
     let mut mut_deps = Box::new(deps);
     let hub_contract = mut_deps.branch().api.addr_validate(&msg.hub_contract)?;
     HUB_CONTRACT.save(mut_deps.storage, &hub_contract)?;
@@ -42,7 +42,7 @@ pub fn execute(
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<Binary>, ContractError> {
+) -> Result<Response, ContractError> {
     let mut modules = SeatModules::new();
     modules.execute(deps, env, info, msg)
 }

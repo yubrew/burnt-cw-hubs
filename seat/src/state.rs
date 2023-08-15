@@ -1,10 +1,11 @@
+use std::vec;
 use std::{cell::RefCell, rc::Rc};
 
 use burnt_glue::module::Module;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Coin, Deps, DepsMut, Empty, Env, MessageInfo, Order, Response,
-    StdResult,
+    to_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Order,
+    Response, StdResult,
 };
 use cw_storage_plus::{Item, Map};
 use ownable::Ownable;
@@ -134,9 +135,9 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         env: Env,
         info: MessageInfo,
         msg: &InstantiateMsg,
-    ) -> Result<Response<Binary>, ContractError> {
+    ) -> Result<Response, ContractError> {
         let mut mut_deps = Box::new(deps);
-        let mut response = Response::<Binary>::new();
+        let mut response = Response::new();
 
         // ownable module
         let ownable_res = self
@@ -201,7 +202,7 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         env: Env,
         info: MessageInfo,
         msg: ExecuteMsg,
-    ) -> Result<Response<Binary>, ContractError> {
+    ) -> Result<Response, ContractError> {
         let mut mut_deps = Box::new(deps);
         let result = match msg {
             ExecuteMsg::Ownable(msg) => self
@@ -232,7 +233,10 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
                 .execute(&mut mut_deps, env, info, msg)
                 .map_err(ContractError::SalesError),
         };
-        result.map(|r| r.into())
+        result.map(|r| {
+            let mut res = Response::new();
+            merge_responses(&mut res, vec![r])
+        })
     }
 
     pub fn query(&self, deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -289,9 +293,9 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
 /// It is used to merge the responses from the modules into one response
 /// Combining all the events and attributes into one response and messages and data into one
 fn merge_responses(
-    main_response: &mut Response<Binary>,
+    main_response: &mut Response,
     responses: Vec<burnt_glue::response::Response>,
-) -> Response<Binary> {
+) -> Response {
     let mut main_response = main_response.clone();
     for response in responses {
         let data = response.data;
@@ -299,7 +303,12 @@ fn merge_responses(
             let bs = serde_json::to_vec(&data).unwrap();
             Some(bs.into())
         };
-        main_response.messages = response.response.messages;
+        // we only care about bank messages for now
+        for message in &response.response.messages {
+            if let CosmosMsg::Bank(msg) = &message.msg {
+                main_response = main_response.add_message(msg.clone());
+            }
+        }
         main_response.attributes = response.response.attributes;
         main_response.events = response.response.events;
     }
