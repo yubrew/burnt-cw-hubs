@@ -3,7 +3,8 @@ use std::{cell::RefCell, rc::Rc};
 use burnt_glue::module::Module;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult, SubMsg,
+    to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Response,
+    StdResult, SubMsg,
 };
 use cw_storage_plus::Item;
 use ownable::Ownable;
@@ -207,7 +208,9 @@ fn merge_responses(
             }
         }
 
-        main_response.attributes.extend(response.response.attributes);
+        main_response
+            .attributes
+            .extend(response.response.attributes);
         main_response.events.extend(response.response.events);
     }
     main_response
