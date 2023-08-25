@@ -1,6 +1,6 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, from_slice, to_vec};
+use cosmwasm_std::{entry_point, from_slice, to_vec, Event};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult};
 use cw2::set_contract_version;
 use semver::Version;
@@ -33,7 +33,9 @@ pub fn instantiate(
     let res = modules.instantiate(mut_deps.branch(), env, info.clone(), &msg);
     set_contract_version(mut_deps.storage, CONTRACT_NAME, CONTRACT_VERSION).unwrap();
     CONFIG.save(mut_deps.storage, &Config { owner: info.sender })?;
-    res
+    Ok(res.unwrap().add_event(
+        Event::new("seat_contract-instantiate").add_attribute("hub_address", hub_contract),
+    ))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -125,6 +127,7 @@ mod tests {
                 seat_name: true,
                 hub_name: true,
             },
+            hub_contract: "hub".to_string(),
         };
         let mut msg = json!({
             "seat_token": {
@@ -194,6 +197,7 @@ mod tests {
                 seat_name: true,
                 hub_name: true,
             },
+            hub_contract: "hub".to_string(),
         };
         let msg = json!({
             "seat_token": {
@@ -384,6 +388,7 @@ mod tests {
                 seat_name: true,
                 hub_name: true,
             },
+            hub_contract: "hub".to_string(),
         };
         let msg = json!({
             "seat_token": {

@@ -5,7 +5,7 @@ use burnt_glue::module::Module;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
     to_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Order,
-    Response, StdResult,
+    Response, StdResult, SubMsg,
 };
 use cw_storage_plus::{Item, Map};
 use ownable::Ownable;
@@ -33,6 +33,7 @@ pub struct SeatMetadata {
     pub benefits: Vec<SeatBenefits>,
     pub template_number: u8,
     pub image_settings: ImageSettings,
+    pub hub_contract: String,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -164,7 +165,7 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.sales.clone())
             .map_err(ContractError::SalesError)?;
 
-        response = merge_responses(
+        merge_responses(
             &mut response,
             vec![ownable_res, meta_res, token_res, sale_res],
         );
@@ -176,7 +177,7 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
                 .borrow_mut()
                 .instantiate(&mut mut_deps.branch(), &env, &info, sellable_items.clone())
                 .map_err(ContractError::SellableError)?;
-            response = merge_responses(&mut response, vec![sellable_res]);
+            merge_responses(&mut response, vec![sellable_res]);
         } else {
             let sellable_res = self
                 .sellable_token
@@ -190,7 +191,7 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
                     },
                 )
                 .map_err(ContractError::SellableError)?;
-            response = merge_responses(&mut response, vec![sellable_res]);
+            merge_responses(&mut response, vec![sellable_res]);
         }
 
         Ok(response)
@@ -235,7 +236,8 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         };
         result.map(|r| {
             let mut res = Response::new();
-            merge_responses(&mut res, vec![r])
+            merge_responses(&mut res, vec![r]);
+            res
         })
     }
 
@@ -295,17 +297,20 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
 fn merge_responses(
     main_response: &mut Response,
     responses: Vec<burnt_glue::response::Response>,
-) -> Response {
-    let mut main_response = main_response.clone();
+) -> &mut Response {
+    // let mut main_response = main_response.clone();
     for response in responses {
         // we only care about bank messages for now
         for message in &response.response.messages {
             if let CosmosMsg::Bank(msg) = &message.msg {
-                main_response = main_response.add_message(msg.clone());
+                main_response.messages.push(SubMsg::new(msg.clone()));
             }
         }
-        main_response.attributes = response.response.attributes;
-        main_response.events = response.response.events;
+
+        main_response
+            .attributes
+            .extend(response.response.attributes);
+        main_response.events.extend(response.response.events);
     }
     main_response
 }
