@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use burnt_glue::module::Module;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult,
+    to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult, SubMsg,
 };
 use cw_storage_plus::Item;
 use ownable::Ownable;
@@ -127,7 +127,7 @@ impl<'a> HubModules<'a, HubMetadata> {
             .metadata
             .instantiate(&mut mut_deps.branch(), &env, &info, msg.metadata)
             .map_err(ContractError::MetadataError)?;
-        response = merge_responses(&mut response, vec![ownable_response, metadata_response]);
+        merge_responses(&mut response, vec![ownable_response, metadata_response]);
         Ok(response)
     }
 
@@ -170,7 +170,8 @@ impl<'a> HubModules<'a, HubMetadata> {
         };
         response.map(|r| {
             let mut res = Response::new();
-            merge_responses(&mut res, vec![r])
+            merge_responses(&mut res, vec![r]);
+            res
         })
     }
 
@@ -196,17 +197,18 @@ impl<'a> HubModules<'a, HubMetadata> {
 fn merge_responses(
     main_response: &mut Response,
     responses: Vec<burnt_glue::response::Response>,
-) -> Response {
-    let mut main_response = main_response.clone();
+) -> &mut Response {
+    // let mut main_response = main_response.clone();
     for response in responses {
         // we only care about bank messages for now
         for message in &response.response.messages {
             if let CosmosMsg::Bank(msg) = &message.msg {
-                main_response = main_response.add_message(msg.clone());
+                main_response.messages.push(SubMsg::new(msg.clone()));
             }
         }
-        main_response.attributes = response.response.attributes;
-        main_response.events = response.response.events;
+
+        main_response.attributes.extend(response.response.attributes);
+        main_response.events.extend(response.response.events);
     }
     main_response
 }
