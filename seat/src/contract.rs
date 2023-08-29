@@ -299,67 +299,6 @@ mod tests {
                 assert_eq!(res.len(), 2);
             }
         }
-        // buy a token
-        // TODO: Fix allowable denom instantiation
-        // let msg = SellableExecuteMsg::BuyToken {
-        //     token_id: "1".to_string(),
-        // };
-        // let buy_msg = json!({ "sellable": msg }).to_string();
-        // let buyer_info = mock_info("buyer", &[Coin::new(200, "uturnt")]);
-        // execute(
-        //     deps.as_mut(),
-        //     env.clone(),
-        //     buyer_info,
-        //     from_str(&buy_msg).unwrap(),
-        // )
-        // .unwrap();
-        // // Get all listed tokens
-        // let query_msg = SellableQueryMsg::ListedTokens {
-        //     start_after: None,
-        //     limit: None,
-        // };
-        // let res = query(
-        //     deps.as_ref(),
-        //     env.clone(),
-        //     from_str(&json!({ "sellable": query_msg }).to_string()).unwrap(),
-        // )
-        // .unwrap();
-        // let result: SellableQueryResp<TokenMetadata> = from_binary(&res).unwrap();
-        // match result {
-        //     SellableQueryResp::ListedTokens(res) => {
-        //         assert_eq!(res.len(), 1);
-        //         let (token_id, price, _) = &res[0];
-        //         assert_eq!(token_id, "2");
-        //         assert_eq!(*price, Coin::new(100, "uturnt"));
-        //     }
-        // }
-        // // buy a token
-        // let msg = SellableExecuteMsg::BuyToken {
-        //     token_id: "1".to_string(),
-        // };
-        // let buy_msg = from_str(&json!({ "sellable": msg }).to_string()).unwrap();
-        // let buyer_info = mock_info("buyer", &[Coin::new(10, "ustake")]);
-        // let buy_response = execute(deps.as_mut(), env.clone(), buyer_info, buy_msg);
-        // match buy_response {
-        //     Err(val) => {
-        //         print!("{:?}", val);
-        //     }
-        //     _ => unreachable!(),
-        // }
-        // // Get all buyer owned tokens
-        // let query_msg = Cw721BaseQueryMsg::<Cw721QueryMsg>::Tokens {
-        //     owner: "buyer".to_string(),
-        //     start_after: None,
-        //     limit: None,
-        // };
-        // let res = query(
-        //     deps.as_ref(),
-        //     env,
-        //     from_str(&json!({ "seat_token": query_msg }).to_string()).unwrap(),
-        // );
-        // let result: TokensResponse = from_binary(&res.unwrap()).unwrap();
-        // assert_eq!(result.tokens.len(), 1);
-        // assert_eq!(result.tokens[0], "1");
     }
 
     #[test]
