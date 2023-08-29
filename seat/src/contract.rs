@@ -100,7 +100,7 @@ mod tests {
     use cw721::{Cw721QueryMsg, NumTokensResponse};
     use cw721_base::{ExecuteMsg as Cw721BaseExecuteMsg, MintMsg, QueryMsg as Cw721BaseQueryMsg};
     use metadata::QueryResp as MetadataQueryResp;
-    use schemars::{Map, Set};
+    use schemars::Map;
     use sellable::msg::{
         ExecuteMsg as SellableExecuteMsg, QueryMsg as SellableQueryMsg,
         QueryResp as SellableQueryResp,
