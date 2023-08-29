@@ -105,7 +105,6 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         // Sellable token
         let sellable_token = sellable::Sellable::new(
             borrowable_seat_token.clone(),
-            borrowable_allowable.clone(),
             borrowable_ownable.clone(),
             Map::new("listed_tokens"),
         );
