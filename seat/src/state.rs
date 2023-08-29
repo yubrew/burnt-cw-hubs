@@ -70,7 +70,6 @@ where
     pub ownable: Rc<RefCell<Ownable<'a>>>,
     pub metadata: metadata::Metadata<'a, T>,
     pub seat_token: Rc<RefCell<Tokens<'a, U, Empty, Empty, Empty>>>,
-    pub redeemable: redeemable::Redeemable<'a>,
     pub sellable_token: Rc<RefCell<sellable::Sellable<'a, U, Empty, Empty, Empty>>>,
     pub sales: sales::Sales<'a, U, Empty, Empty, Empty>,
 }
@@ -103,8 +102,6 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
         let seat_token =
             Tokens::<TokenMetadata, Empty, Empty, Empty>::new(cw721_base::Cw721Contract::default());
         let borrowable_seat_token = Rc::new(RefCell::new(seat_token));
-        // Redeemable token
-        let redeemable = redeemable::Redeemable::new(Item::new("redeemed_items"));
         // Sellable token
         let sellable_token = sellable::Sellable::new(
             borrowable_seat_token.clone(),
@@ -124,7 +121,6 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
             ownable: borrowable_ownable,
             metadata,
             seat_token: borrowable_seat_token,
-            redeemable,
             sellable_token: borrowable_sellable_token,
             sales,
         }
@@ -253,9 +249,6 @@ impl<'a> SeatModules<'a, SeatMetadata, TokenMetadata> {
                 match res {
                     token::QueryResp::Result(resp) => Ok(resp),
                 }
-            }
-            QueryMsg::Redeemable(msg) => {
-                to_binary(&self.redeemable.query(&deps, env, msg).unwrap())
             }
             QueryMsg::Sellable(msg) => to_binary(
                 &self

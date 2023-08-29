@@ -141,9 +141,6 @@ mod tests {
             "ownable": {
                 "owner": CREATOR
             },
-            "redeemable": {
-                "locked_items": Set::<String>::new()
-            },
             "sellable": {
                 "tokens": Map::<&str, Coin>::new()
             },
@@ -210,9 +207,6 @@ mod tests {
             },
             "ownable": {
                 "owner": CREATOR
-            },
-            "redeemable": {
-                "locked_items": Set::<String>::new()
             },
             "sellable": {
                 "tokens": {}
@@ -401,9 +395,6 @@ mod tests {
             },
             "ownable": {
                 "owner": CREATOR
-            },
-            "redeemable": {
-                "locked_items": Set::<String>::new()
             },
             "sellable": {
                 "tokens": {}

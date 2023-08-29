@@ -18,9 +18,6 @@ pub enum ContractError {
     #[error("Token Module Error")]
     SeatTokenError(#[from] cw721_base::ContractError),
 
-    #[error("Redeemable Module Error")]
-    RedeemableError(#[from] redeemable::errors::ContractError),
-
     #[error(transparent)]
     SellableError(#[from] sellable::errors::ContractError),
 
