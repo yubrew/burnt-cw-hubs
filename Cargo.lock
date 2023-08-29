@@ -37,7 +37,7 @@ dependencies = [
 [[package]]
 name = "allowable"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std?branch=audit/3#afb1acf1100806d4d505d5dca5745e4cda0bbaea"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#0fe411e762d22384bb00f9304cac31585239c805"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -1151,7 +1151,7 @@ checksum = "f478948fd84d9f8e86967bf432640e46adfb5a4bd4f14ef7e864ab38220534ae"
 [[package]]
 name = "metadata"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std?branch=audit/3#afb1acf1100806d4d505d5dca5745e4cda0bbaea"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#0fe411e762d22384bb00f9304cac31585239c805"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -1273,7 +1273,7 @@ dependencies = [
 [[package]]
 name = "ownable"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std?branch=audit/3#afb1acf1100806d4d505d5dca5745e4cda0bbaea"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#0fe411e762d22384bb00f9304cac31585239c805"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -1397,7 +1397,7 @@ dependencies = [
 [[package]]
 name = "redeemable"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std?branch=audit/3#afb1acf1100806d4d505d5dca5745e4cda0bbaea"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#0fe411e762d22384bb00f9304cac31585239c805"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
@@ -1506,7 +1506,7 @@ checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
 [[package]]
 name = "sales"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std?branch=audit/3#afb1acf1100806d4d505d5dca5745e4cda0bbaea"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#0fe411e762d22384bb00f9304cac31585239c805"
 dependencies = [
  "allowable",
  "burnt-glue",
@@ -1611,7 +1611,7 @@ dependencies = [
 [[package]]
 name = "sellable"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std?branch=audit/3#afb1acf1100806d4d505d5dca5745e4cda0bbaea"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#0fe411e762d22384bb00f9304cac31585239c805"
 dependencies = [
  "allowable",
  "burnt-glue",
@@ -1866,7 +1866,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "token"
 version = "0.1.0"
-source = "git+https://github.com/burnt-labs/burnt-cw-std?branch=audit/3#afb1acf1100806d4d505d5dca5745e4cda0bbaea"
+source = "git+https://github.com/burnt-labs/burnt-cw-std#0fe411e762d22384bb00f9304cac31585239c805"
 dependencies = [
  "burnt-glue",
  "cosmwasm-std",
