@@ -43,3 +43,4 @@ which should store the contract to the node and you can instantiate your contrac
 If you don't want to build the contract from scratch, simply download the latest release and deploy those
 
 
+Created by Burnt Labs
